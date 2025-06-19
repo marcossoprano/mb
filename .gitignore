@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtualenv
+venv/
+ENV/
+.env/
+
+# Django
+*.log
+*.pot
+*.pyc
+*.sqlite3
+
+# VSCode
+.vscode/
+
+# Arquivo de credenciais do banco
+DBCREDENTIALS.env 
