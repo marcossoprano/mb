@@ -12,7 +12,7 @@ Sistema de configuração logística inteligente para microindústrias
 ### 1. Clone o repositório
 ```bash
 git clone <URL_DO_REPOSITORIO>
-cd milo_backend
+cd backend
 ```
 
 ### 2. Instale as dependências
