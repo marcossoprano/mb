@@ -45,10 +45,19 @@ CREATE DATABASE milo_db;
 python manage.py makemigrations
 python manage.py migrate
 ```
+ou
+```bash
+py manage.py makemigrations
+py manage.py migrate
+```
 
 ### 6. Inicie o servidor
 ```bash
 python manage.py runserver
+```
+ou
+```bash
+py manage.py runserver
 ```
 
 ### 7. Teste as rotas de registro e login no Postman
