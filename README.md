@@ -93,6 +93,25 @@ py manage.py runserver
   }
   ```
 
+#### Logout
+- **Endpoint:** `POST http://127.0.0.1:8000/api/usuarios/logout/`
+- **Headers:**
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+  - `Content-Type: application/json`
+- **Body (JSON):**
+  ```json
+  {
+    "refresh_token": "SEU_REFRESH_TOKEN_AQUI"
+  }
+  ```
+- **Resposta de sucesso:**
+  ```json
+  {
+    "message": "Logout realizado com sucesso"
+  }
+  ```
+- **Observação:** O refresh token será invalidado e não poderá ser usado novamente
+
 #### Usando o token de acesso
 - Para acessar rotas protegidas, envie o token no header:
   - **Key:** `Authorization`
