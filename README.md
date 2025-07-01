@@ -112,8 +112,8 @@ py manage.py runserver
   ```
 - **Observação:** O refresh token será invalidado e não poderá ser usado novamente
 
-### Trocar senha
-- **Endpoint:** 'POST http://127.0.0.1:8000/api/usuarios/trocar-senha/'
+#### Trocar senha
+- **Endpoint:** `POST http://127.0.0.1:8000/api/usuarios/trocar-senha/`
 - **Headers:**
   - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
   - `Content-Type: application/json`
@@ -136,8 +136,8 @@ py manage.py runserver
   - **Observação:** Essa rota exige autenticação com token válido (access token)
 
 
-### Deletar conta
-- **Endpoint:**  DELETE http://127.0.0.1:8000/api/usuarios/deletar-conta/
+#### Deletar conta
+- **Endpoint:**  `DELETE http://127.0.0.1:8000/api/usuarios/deletar-conta/`
 
 - **Headers:**
 
