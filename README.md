@@ -112,6 +112,53 @@ py manage.py runserver
   ```
 - **Observação:** O refresh token será invalidado e não poderá ser usado novamente
 
+### Trocar senha
+- **Endpoint:** 'POST http://127.0.0.1:8000/api/usuarios/trocar-senha/'
+- **Headers:**
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+  - `Content-Type: application/json`
+- **Body (JSON):**
+  ```json
+  {
+    
+  "nova_senha": "novaSenhaSegura123"
+
+  }
+  ```
+- **Resposta de sucesso:**
+  ```json
+  
+  {
+  "mensagem": "Senha atualizada com sucesso"
+
+  }
+  ```
+  - **Observação:** Essa rota exige autenticação com token válido (access token)
+
+
+### Deletar conta
+- **Endpoint:**  DELETE http://127.0.0.1:8000/api/usuarios/deletar-conta/
+
+- **Headers:**
+
+  -  `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+- **Body (JSON):**  
+
+  - `não é necessário enviar nenhum corpo na requisição`
+
+- **Resposta de sucesso:**
+  ```json
+  
+  {
+  "mensagem": "Conta deletada com sucesso"
+
+  }
+  ```
+  - **Observação:**A conta autenticada será permanentemente removida do sistema
+
+
+
 #### Usando o token de acesso
 - Para acessar rotas protegidas, envie o token no header:
   - **Key:** `Authorization`
