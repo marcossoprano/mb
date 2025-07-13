@@ -170,58 +170,7 @@ py manage.py runserver
 
 ## API Endpoints Completos
 
-### 🔐 **Autenticação e Usuários**
-
-#### Renovar Token
-- **Endpoint:** `POST http://127.0.0.1:8000/api/usuarios/token/refresh/`
-- **Headers:** `Content-Type: application/json`
-- **Body (JSON):**
-  ```json
-  {
-    "refresh": "SEU_REFRESH_TOKEN_AQUI"
-  }
-  ```
-
 ### 📦 **Produtos**
-
-#### Listar Categorias
-- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/categorias/`
-- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
-
-#### Criar Categoria
-- **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/categorias/criar/`
-- **Headers:** 
-  - `Content-Type: application/json`
-  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
-- **Body (JSON):**
-  ```json
-  {
-    "nome": "Eletrônicos"
-  }
-  ```
-
-#### Listar Fornecedores
-- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/fornecedores/`
-- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
-
-#### Criar Fornecedor
-- **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/fornecedores/`
-- **Headers:** 
-  - `Content-Type: application/json`
-  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
-- **Body (JSON):**
-  ```json
-  {
-    "nome": "Fornecedor ABC LTDA",
-    "telefone": "(11) 99999-9999",
-    "email": "contato@fornecedorabc.com",
-    "endereco": "Rua do Fornecedor, 123 - São Paulo/SP"
-  }
-  ```
-
-#### Listar Produtos
-- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/`
-- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
 
 #### Cadastrar Produto com Categoria Existente
 - **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/cadastrar-com-categoria/`
@@ -268,8 +217,9 @@ py manage.py runserver
     "nova_categoria": "Categoria Especial"
   }
   ```
-
-
+#### Listar Produtos
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
 
 #### Atualizar Produto
 - **Endpoint:** `PUT http://127.0.0.1:8000/api/produtos/{id}/atualizar/`
@@ -296,6 +246,39 @@ py manage.py runserver
 
 #### Excluir Produto
 - **Endpoint:** `DELETE http://127.0.0.1:8000/api/produtos/{id}/excluir/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Criar Categoria
+- **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/categorias/criar/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "nome": "Eletrônicos"
+  }
+  ```
+#### Listar Categorias
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/categorias/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Criar Fornecedor
+- **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/fornecedores/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "nome": "Fornecedor ABC LTDA",
+    "telefone": "(11) 99999-9999",
+    "email": "contato@fornecedorabc.com",
+    "endereco": "Rua do Fornecedor, 123 - São Paulo/SP"
+  }
+  ```
+#### Listar Fornecedores
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/fornecedores/`
 - **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
 
 ### 🔍 **Filtros e Busca**
