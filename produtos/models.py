@@ -92,3 +92,39 @@ class Produto(models.Model):
             raise ValidationError("Preço de venda não pode ser menor que o preço de custo")
         if self.estoque_minimo < 0:
             raise ValidationError("Estoque mínimo não pode ser negativo")
+
+class MovimentacaoEstoque(models.Model):
+    TIPO_CHOICES = [
+        ('entrada', 'Entrada'),
+        ('saida', 'Saída'),
+    ]
+    
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.CASCADE,
+        verbose_name="Produto",
+        related_name='movimentacoes'
+    )
+    tipo = models.CharField(
+        max_length=7,
+        choices=TIPO_CHOICES,
+        verbose_name="Tipo de Movimentação"
+    )
+    quantidade = models.PositiveIntegerField(verbose_name="Quantidade Movimentada")
+    estoque_anterior = models.PositiveIntegerField(verbose_name="Estoque Anterior")
+    estoque_atual = models.PositiveIntegerField(verbose_name="Estoque Atual")
+    data_movimentacao = models.DateTimeField(auto_now_add=True, verbose_name="Data e Hora da Movimentação")
+    observacao = models.TextField(blank=True, verbose_name="Observação")
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        verbose_name="Usuário Responsável"
+    )
+
+    class Meta:
+        ordering = ['-data_movimentacao']
+        verbose_name = "Movimentação de Estoque"
+        verbose_name_plural = "Movimentações de Estoque"
+
+    def __str__(self):
+        return f"{self.produto.nome} - {self.get_tipo_display()} ({self.quantidade}) - {self.data_movimentacao.strftime('%d/%m/%Y %H:%M')}"

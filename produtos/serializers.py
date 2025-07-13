@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Produto, Fornecedor, Categoria
+from .models import Produto, Fornecedor, Categoria, MovimentacaoEstoque
 
 class FornecedorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -152,3 +152,24 @@ class ProdutoCreateWithCategoriaSerializer(serializers.ModelSerializer):
         # Cria o produto
         validated_data['usuario'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
+    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+    
+    class Meta:
+        model = MovimentacaoEstoque
+        fields = [
+            'id',
+            'produto',
+            'produto_nome',
+            'tipo',
+            'tipo_display',
+            'quantidade',
+            'estoque_anterior',
+            'estoque_atual',
+            'data_movimentacao',
+            'observacao',
+        ]
+        read_only_fields = ['id', 'estoque_anterior', 'estoque_atual', 'data_movimentacao', 'produto_nome', 'tipo_display']
