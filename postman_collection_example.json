@@ -1,0 +1,149 @@
+{
+  "info": {
+    "name": "Milo API Collection",
+    "description": "Collection para testar a API Milo com renovação automática de tokens"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Script que roda antes de cada requisição",
+          "// Verifica se o token precisa ser renovado",
+          "const accessToken = pm.environment.get('access_token');",
+          "const refreshToken = pm.environment.get('refresh_token');",
+          "",
+          "if (accessToken && refreshToken) {",
+          "    try {",
+          "        // Decodifica o token para verificar expiração",
+          "        const tokenPayload = JSON.parse(atob(accessToken.split('.')[1]));",
+          "        const currentTime = Math.floor(Date.now() / 1000);",
+          "        const timeUntilExpiry = tokenPayload.exp - currentTime;",
+          "",
+          "        // Se o token expira em menos de 5 minutos, renova",
+          "        if (timeUntilExpiry < 300) {",
+          "            console.log('Token expirando em breve, renovando...');",
+          "            ",
+          "            const refreshRequest = {",
+          "                url: pm.environment.get('base_url') + '/usuarios/token/refresh/',",
+          "                method: 'POST',",
+          "                header: {",
+          "                    'Content-Type': 'application/json'",
+          "                },",
+          "                body: {",
+          "                    mode: 'raw',",
+          "                    raw: JSON.stringify({",
+          "                        refresh: refreshToken",
+          "                    })",
+          "                }",
+          "            };",
+          "            ",
+          "            pm.sendRequest(refreshRequest, function (err, response) {",
+          "                if (!err && response.code === 200) {",
+          "                    const newTokens = response.json();",
+          "                    pm.environment.set('access_token', newTokens.access);",
+          "                    pm.environment.set('refresh_token', newTokens.refresh);",
+          "                    console.log('Token renovado com sucesso!');",
+          "                } else {",
+          "                    console.log('Erro ao renovar token:', err);",
+          "                }",
+          "            });",
+          "        }",
+          "    } catch (e) {",
+          "        console.log('Erro ao verificar token:', e);",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"seu_cnpj_aqui\",\n  \"password\": \"sua_senha_aqui\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/login/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "login", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.environment.set('access_token', response.access);",
+              "    pm.environment.set('refresh_token', response.refresh);",
+              "    console.log('Login realizado com sucesso!');",
+              "    console.log('Tokens salvos no environment');",
+              "} else {",
+              "    console.log('Erro no login:', pm.response.text());",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listar Produtos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/produtos/produtos/",
+          "host": ["{{base_url}}"],
+          "path": ["produtos", "produtos", ""]
+        }
+      }
+    },
+    {
+      "name": "Criar Produto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Produto Teste\",\n  \"marca\": \"Marca Teste\",\n  \"preco\": 99.99,\n  \"quantidade\": 10\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/produtos/produtos/",
+          "host": ["{{base_url}}"],
+          "path": ["produtos", "produtos", ""]
+        }
+      }
+    }
+  ]
+} 
