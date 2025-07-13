@@ -223,8 +223,6 @@ py manage.py runserver
 - **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/`
 - **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
 
-
-
 #### Cadastrar Produto com Categoria Existente
 - **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/cadastrar-com-categoria/`
 - **Headers:** 
@@ -299,10 +297,6 @@ py manage.py runserver
 #### Excluir Produto
 - **Endpoint:** `DELETE http://127.0.0.1:8000/api/produtos/{id}/excluir/`
 - **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
-
-#### Teste sem Autenticação (REMOVER EM PRODUÇÃO)
-- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/teste/`
-- **Headers:** Nenhum
 
 ### 🔍 **Filtros e Busca**
 

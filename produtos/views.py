@@ -38,21 +38,6 @@ class ProdutoListView(generics.ListAPIView):
     def get_queryset(self):
         return Produto.objects.filter(usuario=self.request.user)
 
-# View para testes sem autenticação (REMOVER EM PRODUÇÃO)
-class ProdutoTestListView(generics.ListAPIView):
-    serializer_class = ProdutoSerializer
-    permission_classes = [AllowAny]  # Permite acesso sem autenticação
-
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['categoria']
-    search_fields = ['nome', 'marca']
-
-    def get_queryset(self):
-        # Retorna todos os produtos para teste
-        return Produto.objects.all()
-
-
-
 class ProdutoUpdateView(generics.UpdateAPIView):
     serializer_class = ProdutoSerializer
     permission_classes = [IsAuthenticated]
