@@ -76,8 +76,6 @@ py manage.py runserver
   }
   ```
 
-
-
 #### Login
 - **Endpoint:** `POST http://127.0.0.1:8000/api/usuarios/login/`
 - **Body (JSON):**
@@ -160,7 +158,6 @@ py manage.py runserver
   - **Observação:**A conta autenticada será permanentemente removida do sistema
 
 
-
 #### Usando o token de acesso
 - Para acessar rotas protegidas, envie o token no header:
   - **Key:** `Authorization`
@@ -168,9 +165,9 @@ py manage.py runserver
 
 ---
 
-## API Endpoints Completos
+### 8. Teste as outras rotas no Postman
 
-### 📦 **Produtos**
+#### 📦 **Produtos**
 
 #### Cadastrar Produto com Categoria Existente
 - **Endpoint:** `POST http://127.0.0.1:8000/api/produtos/cadastrar-com-categoria/`
@@ -281,7 +278,62 @@ py manage.py runserver
 - **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/fornecedores/`
 - **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
 
-### 🔍 **Filtros e Busca**
+#### 📊 **Movimentações de Estoque**
+
+O sistema registra automaticamente todas as movimentações de estoque quando:
+- **Criação de produto**: Se o produto for criado com estoque inicial, registra uma movimentação de entrada
+- **Atualização de produto**: Se o estoque for alterado durante a atualização, registra automaticamente a movimentação
+
+#### Listar Todas as Movimentações
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/movimentacoes/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  [
+    {
+      "id": 1,
+      "produto": 1,
+      "produto_nome": "Smartphone XYZ",
+      "tipo": "entrada",
+      "tipo_display": "Entrada",
+      "quantidade": 20,
+      "estoque_anterior": 0,
+      "estoque_atual": 20,
+      "data_movimentacao": "2024-01-20T10:30:00Z",
+      "observacao": "Cadastro inicial do produto"
+    },
+    {
+      "id": 2,
+      "produto": 1,
+      "produto_nome": "Smartphone XYZ",
+      "tipo": "saida",
+      "tipo_display": "Saída",
+      "quantidade": 5,
+      "estoque_anterior": 20,
+      "estoque_atual": 15,
+      "data_movimentacao": "2024-01-20T11:00:00Z",
+      "observacao": "Remoção de 5 unidades do estoque"
+    }
+  ]
+  ```
+
+#### Listar Movimentações de um Produto Específico
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/movimentacoes/produto/{produto_id}/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Filtrar Movimentações por Tipo
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/movimentacoes/?tipo=entrada`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Filtrar Movimentações por Produto
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/movimentacoes/?produto=1`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Buscar Movimentações por Texto
+- **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/movimentacoes/?search=Smartphone`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### 🔍 **Filtros e Busca**
 
 #### Filtrar Produtos por Categoria
 - **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/?categoria=1`
@@ -301,9 +353,10 @@ py manage.py runserver
 4. **Criar fornecedor** (POST `/api/produtos/fornecedores/`)
 5. **Cadastrar produto** (POST `/api/produtos/cadastrar-com-categoria/`)
 6. **Listar produtos** (GET `/api/produtos/`)
-7. **Testar outros endpoints**
-
-**💡 Dica:** Use as variáveis do Postman para armazenar o token e reutilizar nos outros requests!
+7. **Verificar movimentações** (GET `/api/produtos/movimentacoes/`)
+8. **Atualizar produto** (PUT `/api/produtos/{id}/atualizar/`) - Alterar estoque
+9. **Verificar movimentações novamente** (GET `/api/produtos/movimentacoes/`)
+10. **Testar outros endpoints**
 
 ---
 
@@ -314,3 +367,4 @@ py manage.py runserver
 - Preço de venda não pode ser menor que o preço de custo
 - Categorias e fornecedores são únicos por usuário
 - Fornecedores não podem ter o mesmo nome para o mesmo usuário
+- **Movimentações de estoque são registradas automaticamente** quando o estoque é alterado
