@@ -181,6 +181,7 @@ py manage.py runserver
     "codigo_barras": "9876543210987",
     "descricao": "Notebook profissional",
     "data_fabricacao": "2024-01-15",
+    "validade": "2025-01-15",
     "lote": "LOT002",
     "preco_custo": "1500.00",
     "preco_venda": "2200.00",
@@ -204,6 +205,7 @@ py manage.py runserver
     "codigo_barras": "1112223334445",
     "descricao": "Produto com categoria nova",
     "data_fabricacao": "2024-01-15",
+    "validade": "2025-01-15",
     "lote": "LOT003",
     "preco_custo": "100.00",
     "preco_venda": "150.00",
@@ -230,6 +232,7 @@ py manage.py runserver
     "codigo_barras": "1234567890123",
     "descricao": "Smartphone atualizado",
     "data_fabricacao": "2024-01-15",
+    "validade": "2025-01-15",
     "lote": "LOT001",
     "preco_custo": "850.00",
     "preco_venda": "1250.00",
@@ -368,3 +371,12 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 - Categorias e fornecedores são únicos por usuário
 - Fornecedores não podem ter o mesmo nome para o mesmo usuário
 - **Movimentações de estoque são registradas automaticamente** quando o estoque é alterado
+
+### Metadados obrigatórios do Produto
+- nome
+- preco_custo
+- preco_venda
+- estoque_minimo
+- estoque_atual
+
+Os demais campos (código de barras, descrição, data de fabricação, lote, marca, fornecedor, categoria) são opcionais.
