@@ -32,7 +32,22 @@ class Categoria(models.Model):
 
 class Produto(models.Model):
     idProduto = models.AutoField(primary_key=True)
-    nome = models.CharField(max_length=100, verbose_name="Nome do Produto")  # usado no search
+    nome = models.CharField(max_length=100, verbose_name="Nome do Produto")  # obrigatório
+    preco_custo = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name="Preço de Custo"
+    )  # obrigatório
+    preco_venda = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name="Preço de Venda"
+    )  # obrigatório
+    estoque_minimo = models.PositiveIntegerField(verbose_name="Estoque Mínimo")  # obrigatório
+    estoque_atual = models.PositiveIntegerField(verbose_name="Estoque Atual")  # obrigatório
+    validade = models.DateField(verbose_name="Validade", null=True, blank=True)
     codigo_barras = models.CharField(
         max_length=13,
         unique=True,
@@ -42,33 +57,22 @@ class Produto(models.Model):
                 message='Código de barras deve conter exatamente 13 dígitos numéricos'
             )
         ],
-        help_text="Código de barras no padrão EAN-13 (13 dígitos)"
+        help_text="Código de barras no padrão EAN-13 (13 dígitos)",
+        blank=True,
+        null=True
     )
-    descricao = models.TextField(blank=True, verbose_name="Descrição")
-    data_fabricacao = models.DateField(verbose_name="Data de Fabricação")
-    lote = models.CharField(max_length=50, verbose_name="Número do Lote")
-    preco_custo = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        validators=[MinValueValidator(0.01)],
-        verbose_name="Preço de Custo"
-    )
-    preco_venda = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        validators=[MinValueValidator(0.01)],
-        verbose_name="Preço de Venda"
-    )
-    marca = models.CharField(max_length=50, verbose_name="Marca")  # usado no search
-    estoque_minimo = models.PositiveIntegerField(verbose_name="Estoque Mínimo")
-    estoque_atual = models.PositiveIntegerField(verbose_name="Estoque Atual")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    data_fabricacao = models.DateField(verbose_name="Data de Fabricação", blank=True, null=True)
+    lote = models.CharField(max_length=50, verbose_name="Número do Lote", blank=True, null=True)
+    marca = models.CharField(max_length=50, verbose_name="Marca", blank=True, null=True)  # usado no search
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
-
     fornecedor = models.ForeignKey(
         Fornecedor,
         on_delete=models.PROTECT,
-        verbose_name="Fornecedor"
+        verbose_name="Fornecedor",
+        blank=True,
+        null=True
     )
     categoria = models.ForeignKey(
         Categoria,
