@@ -71,7 +71,12 @@ py manage.py runserver
     "nome": "Empresa Exemplo",
     "telefone": "11999999999",
     "email": "empresa@exemplo.com",
-    "endereco": "Rua Exemplo, 123",
+    "cep": "12345678",
+    "rua": "Rua Exemplo",
+    "numero": "123",
+    "bairro": "Centro",
+    "cidade": "São Paulo",
+    "estado": "SP",
     "password": "senhaSegura123"
   }
   ```
