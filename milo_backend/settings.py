@@ -45,9 +45,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'usuarios',
     'produtos',
-    'corsheaders', #Anotação da Lara: LEMBRE DE USAR pip install django-cors-headers
-    
-    
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
