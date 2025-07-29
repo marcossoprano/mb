@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'usuarios',
     'produtos',
+    'corsheaders',
     
     
 ]
@@ -58,6 +59,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'milo_backend.middleware.JWTAutoRefreshMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  #porta do react
 ]
 
 ROOT_URLCONF = 'milo_backend.urls'
