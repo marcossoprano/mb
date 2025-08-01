@@ -81,6 +81,91 @@ py manage.py runserver
   }
   ```
 
+**⚠️ Validações importantes:**
+- **CNPJ e Nome** são obrigatórios
+- **Email OU Telefone** - pelo menos um dos dois deve ser fornecido (não é obrigatório fornecer ambos)
+- **Todos os campos de endereço** são obrigatórios: cep, rua, numero, bairro, cidade, estado
+
+**Exemplos válidos:**
+
+**Cadastro apenas com email:**
+```json
+{
+  "cnpj": "12345678000199",
+  "nome": "Empresa Exemplo",
+  "email": "empresa@exemplo.com",
+  "cep": "12345678",
+  "rua": "Rua Exemplo",
+  "numero": "123",
+  "bairro": "Centro",
+  "cidade": "São Paulo",
+  "estado": "SP",
+  "password": "senhaSegura123"
+}
+```
+
+**Cadastro apenas com telefone:**
+```json
+{
+  "cnpj": "12345678000198",
+  "nome": "Empresa Exemplo 2",
+  "telefone": "11999999999",
+  "cep": "12345678",
+  "rua": "Rua Exemplo",
+  "numero": "123",
+  "bairro": "Centro",
+  "cidade": "São Paulo",
+  "estado": "SP",
+  "password": "senhaSegura123"
+}
+```
+
+**Cadastro com ambos (email e telefone):**
+```json
+{
+  "cnpj": "12345678000197",
+  "nome": "Empresa Exemplo 3",
+  "telefone": "11999999999",
+  "email": "empresa@exemplo.com",
+  "cep": "12345678",
+  "rua": "Rua Exemplo",
+  "numero": "123",
+  "bairro": "Centro",
+  "cidade": "São Paulo",
+  "estado": "SP",
+  "password": "senhaSegura123"
+}
+```
+
+**❌ Exemplos que gerarão erro:**
+
+**Erro: Nenhum contato fornecido**
+```json
+{
+  "cnpj": "12345678000199",
+  "nome": "Empresa Exemplo",
+  "cep": "12345678",
+  "rua": "Rua Exemplo",
+  "numero": "123",
+  "bairro": "Centro",
+  "cidade": "São Paulo",
+  "estado": "SP",
+  "password": "senhaSegura123"
+}
+```
+*Erro: "Pelo menos um dos campos: email ou telefone deve ser fornecido"*
+
+**Erro: Campos de endereço faltando**
+```json
+{
+  "cnpj": "12345678000199",
+  "nome": "Empresa Exemplo",
+  "email": "empresa@exemplo.com",
+  "password": "senhaSegura123"
+}
+```
+*Erro: "Os seguintes campos de endereço são obrigatórios: cep, rua, numero, bairro, cidade, estado"*
+
 #### Login
 - **Endpoint:** `POST http://127.0.0.1:8000/api/usuarios/login/`
 - **Body (JSON):**
