@@ -1,6 +1,7 @@
 # Generated manually to rename consumo_por_km to eficiencia_km_l
 
 from django.db import migrations, models
+from django.core.validators import MinValueValidator
 
 class Migration(migrations.Migration):
 
@@ -20,8 +21,8 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 max_digits=5,
-                validators=[django.core.validators.MinValueValidator(0.01)],
-                verbose_name='Eficiência (km/L)'
+                validators=[MinValueValidator(0.01)],
+                verbose_name='Eficiência (km/L para líquidos, km/m³ para GNV)'
             ),
         ),
     ] 

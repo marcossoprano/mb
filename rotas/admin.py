@@ -3,7 +3,7 @@ from .models import Veiculo, Rota
 
 @admin.register(Veiculo)
 class VeiculoAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'tipo_combustivel', 'consumo_por_km', 'usuario', 'data_cadastro']
+    list_display = ['nome', 'tipo_combustivel', 'eficiencia_km_l', 'usuario', 'data_cadastro']
     list_filter = ['tipo_combustivel', 'data_cadastro']
     search_fields = ['nome', 'usuario__nome']
     readonly_fields = ['data_cadastro', 'data_atualizacao']

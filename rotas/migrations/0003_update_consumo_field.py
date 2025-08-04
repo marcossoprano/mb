@@ -1,6 +1,7 @@
 # Generated manually to update consumo field to use km/L instead of L/km
 
 from django.db import migrations, models
+from django.core.validators import MinValueValidator
 
 class Migration(migrations.Migration):
 
@@ -15,7 +16,7 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 max_digits=5,
-                validators=[django.core.validators.MinValueValidator(0.01)],
+                validators=[MinValueValidator(0.01)],
                 verbose_name='Consumo de Combustível (km/L)'
             ),
         ),

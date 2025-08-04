@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from decimal import Decimal
 from .models import Veiculo, Rota
 from produtos.models import Produto
 
@@ -114,7 +115,7 @@ class RotaCreateSerializer(serializers.Serializer):
         max_digits=6,
         decimal_places=2,
         required=False,
-        min_value=0.01,
+        min_value=Decimal('0.01'),
         help_text="Preço do combustível por litro ou m³ (opcional - será usado valor base se não informado)"
     )
     produtos_quantidades = serializers.ListField(
