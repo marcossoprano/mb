@@ -55,8 +55,6 @@ class Usuario(AbstractBaseUser):
     nome = models.CharField(max_length=255)
     telefone = models.CharField(max_length=20, null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
-    # Campo endereco para compatibilidade com banco existente
-    endereco = models.CharField(max_length=255, null=True, blank=True)
     # Campos de endereço detalhado (OBRIGATÓRIOS)
     cep = models.CharField(max_length=8)
     rua = models.CharField(max_length=255)
@@ -95,5 +93,5 @@ class Usuario(AbstractBaseUser):
 
     def endereco_completo(self):
         if all([self.rua, self.numero, self.bairro, self.cidade, self.estado, self.cep]):
-            return f"{self.rua}, {self.numero}, {self.bairro}, {self.cidade} - {self.estado}, CEP: {self.cep}"
+            return f"{self.rua}, {self.numero}, {self.bairro}, {self.cidade} - {self.estado}, {self.cep}"
         return "Endereço incompleto"

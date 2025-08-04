@@ -438,6 +438,278 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 
 ---
 
+#### 🚗 **Veículos**
+
+#### Cadastrar Veículo
+- **Endpoint:** `POST http://127.0.0.1:8000/api/rotas/veiculos/criar/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "nome": "Caminhão Mercedes-Benz",
+    "tipo_combustivel": "diesel",
+    "consumo_por_km": "2.5"
+  }
+  ```
+- **Resposta:**
+  ```json
+  {
+    "id": 1,
+    "nome": "Caminhão Mercedes-Benz",
+    "tipo_combustivel": "diesel",
+    "tipo_combustivel_display": "Diesel",
+    "consumo_por_km": "2.50",
+    "data_cadastro": "2024-01-20T10:30:00Z",
+    "data_atualizacao": "2024-01-20T10:30:00Z"
+  }
+  ```
+
+#### Listar Veículos
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/veiculos/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  [
+    {
+      "id": 1,
+      "nome": "Caminhão Mercedes-Benz",
+      "tipo_combustivel": "diesel",
+      "tipo_combustivel_display": "Diesel",
+      "consumo_por_km": "2.50",
+      "data_cadastro": "2024-01-20T10:30:00Z",
+      "data_atualizacao": "2024-01-20T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "nome": "Van Ford Transit",
+      "tipo_combustivel": "gasolina",
+      "tipo_combustivel_display": "Gasolina",
+      "consumo_por_km": "1.8",
+      "data_cadastro": "2024-01-20T11:00:00Z",
+      "data_atualizacao": "2024-01-20T11:00:00Z"
+    }
+  ]
+  ```
+
+#### Obter Detalhes de um Veículo
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/veiculos/{id}/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  {
+    "id": 1,
+    "nome": "Caminhão Mercedes-Benz",
+    "tipo_combustivel": "diesel",
+    "tipo_combustivel_display": "Diesel",
+    "consumo_por_km": "2.50",
+    "data_cadastro": "2024-01-20T10:30:00Z",
+    "data_atualizacao": "2024-01-20T10:30:00Z"
+  }
+  ```
+
+#### Atualizar Veículo
+- **Endpoint:** `PUT http://127.0.0.1:8000/api/rotas/veiculos/{id}/atualizar/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "nome": "Caminhão Mercedes-Benz Atualizado",
+    "tipo_combustivel": "diesel",
+    "consumo_por_km": "2.3"
+  }
+  ```
+
+#### Excluir Veículo
+- **Endpoint:** `DELETE http://127.0.0.1:8000/api/rotas/veiculos/{id}/excluir/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### 🔍 **Filtros e Busca para Veículos**
+
+#### Filtrar Veículos por Tipo de Combustível
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/veiculos/?tipo_combustivel=diesel`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Buscar Veículos por Nome
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/veiculos/?search=mercedes`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Valores Válidos para Tipo de Combustível
+- `diesel` - Diesel
+- `gasolina` - Gasolina
+
+---
+
+#### 🛣️ **Rotas Otimizadas**
+
+#### Criar Rota Otimizada
+- **Endpoint:** `POST http://127.0.0.1:8000/api/rotas/rotas/criar/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "enderecos_destino": [
+      "Avenida Paulista, 1000, São Paulo, Brasil",
+      "Rua Augusta, 1500, São Paulo, Brasil",
+      "Mercado Municipal de São Paulo"
+    ],
+    "nome_motorista": "João Silva",
+    "veiculo_id": 1,
+    "produtos_quantidades": [
+      {
+        "produto_id": 1,
+        "quantidade": 5
+      },
+      {
+        "produto_id": 2,
+        "quantidade": 3
+      }
+    ]
+  }
+  ```
+  
+  **Exemplo sem veículo e motorista (campos opcionais):**
+  ```json
+  {
+    "enderecos_destino": [
+      "Rua Prof. Silvio de Macedo, 125, Jatiúca",
+      "Universidade Federal de Alagoas"
+    ],
+    "produtos_quantidades": [
+      {
+        "produto_id": 1,
+        "quantidade": 5
+      }
+    ]
+  }
+  ```
+- **Resposta:**
+  ```json
+  {
+    "id": 1,
+    "data_geracao": "2024-01-20T10:30:00Z",
+    "enderecos_otimizados": [
+      "Rua da Empresa",
+      "Universidade Federal de Alagoas",
+      "Rua Prof. Silvio de Macedo, 125, Jatiúca",
+      "Rua da Empresa"
+    ],
+    "coordenadas_otimizadas": [
+      [-11.1111, -11.1111],
+      [-9.5536252, -35.7739006],
+      [-9.6461711, -35.7034641],
+      [-11.1111, -11.1111]
+    ],
+    "distancia_total_km": "25.50",
+    "tempo_estimado_minutos": 45,
+    "veiculo": 1,
+    "veiculo_nome": "Caminhão Mercedes-Benz",
+    "nome_motorista": "João Silva",
+    "valor_rota": "350.75",
+    "produtos_quantidades": [
+      {
+        "produto_id": 1,
+        "quantidade": 5
+      },
+      {
+        "produto_id": 2,
+        "quantidade": 3
+      }
+    ],
+    "link_maps": "https://www.google.com/maps/dir/?api=1&origin=-23.5505,-46.6333&destination=-23.5505,-46.6333&waypoints=-23.5631,-46.6544|-23.5489,-46.6388",
+    "status": "em_progresso",
+    "status_display": "Em Progresso",
+    "preco_combustivel_na_geracao": 5.50
+  }
+  ```
+
+#### Listar Rotas
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/rotas/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  [
+    {
+      "id": 1,
+      "data_geracao": "2024-01-20T10:30:00Z",
+      "enderecos_otimizados": [...],
+      "coordenadas_otimizadas": [...],
+      "distancia_total_km": "25.50",
+      "tempo_estimado_minutos": 45,
+      "veiculo": 1,
+      "veiculo_nome": "Caminhão Mercedes-Benz",
+      "nome_motorista": "João Silva",
+      "valor_rota": "350.75",
+      "produtos_quantidades": [...],
+      "link_maps": "...",
+      "status": "em_progresso",
+      "status_display": "Em Progresso",
+      "preco_combustivel_na_geracao": 5.8
+    }
+  ]
+  ```
+
+#### Obter Detalhes de uma Rota
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/rotas/{id}/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Atualizar Status da Rota
+- **Endpoint:** `PUT http://127.0.0.1:8000/api/rotas/rotas/{id}/status/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "status": "concluido"
+  }
+  ```
+
+#### Excluir Rota
+- **Endpoint:** `DELETE http://127.0.0.1:8000/api/rotas/rotas/{id}/excluir/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### 🔍 **Filtros e Busca para Rotas**
+
+#### Filtrar Rotas por Status
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/rotas/?status=em_progresso`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Filtrar Rotas por Veículo
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/rotas/?veiculo=1`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Buscar Rotas por Nome do Motorista
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/rotas/?search=joão`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Valores Válidos para Status da Rota
+- `em_progresso` - Em Progresso
+- `concluido` - Concluído
+
+#### ⛽ **Preços de Combustível**
+
+#### Obter Preços Atuais
+- **Endpoint:** `GET http://127.0.0.1:8000/api/rotas/precos-combustivel/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  {
+    "diesel": 5.50,
+    "gasolina": 5.80,
+    "unidade": "R$/L",
+    "fonte": "combustivelapi.com.br",
+    "atualizado_em": "2024-01-20T10:30:00Z"
+  }
+  ```
+
+---
+
 ## 📋 **Ordem Sugerida de Testes**
 
 1. **Registrar usuário** (POST `/api/usuarios/register/`)
@@ -449,18 +721,32 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 7. **Verificar movimentações** (GET `/api/produtos/movimentacoes/`)
 8. **Atualizar produto** (PUT `/api/produtos/{id}/atualizar/`) - Alterar estoque
 9. **Verificar movimentações novamente** (GET `/api/produtos/movimentacoes/`)
-10. **Testar outros endpoints**
+10. **Cadastrar veículo** (POST `/api/rotas/veiculos/criar/`)
+11. **Listar veículos** (GET `/api/rotas/veiculos/`)
+12. **Atualizar veículo** (PUT `/api/rotas/veiculos/{id}/atualizar/`)
+13. **Testar filtros de veículos** (GET `/api/rotas/veiculos/?tipo_combustivel=diesel`)
+14. **Obter preços de combustível** (GET `/api/rotas/precos-combustivel/`)
+15. **Criar rota otimizada** (POST `/api/rotas/rotas/criar/`)
+16. **Listar rotas** (GET `/api/rotas/rotas/`)
+17. **Verificar movimentações de estoque da rota** (GET `/api/produtos/movimentacoes/`)
+18. **Atualizar status da rota** (PUT `/api/rotas/rotas/{id}/status/`)
+19. **Testar filtros de rotas** (GET `/api/rotas/rotas/?status=em_progresso`)
+20. **Testar outros endpoints**
 
 ---
 
 ## Observações
-- **Nunca commite o arquivo `DBCREDENTIALS.env`!**
-- Todos os endpoints de produtos requerem autenticação
+- **Nunca commite o arquivo `DBCCREDENTIALS.env`!**
+- Todos os endpoints de produtos, veículos e rotas requerem autenticação
 - Código de barras deve ter exatamente 13 dígitos numéricos
 - Preço de venda não pode ser menor que o preço de custo
 - Categorias e fornecedores são únicos por usuário
 - Fornecedores não podem ter o mesmo nome para o mesmo usuário
 - **Movimentações de estoque são registradas automaticamente** quando o estoque é alterado
+- Veículos e rotas são isolados por usuário (multi-tenant)
+- **Rotas sempre começam e terminam no endereço do usuário** (origem = destino)
+- **Estoque é automaticamente reduzido** quando uma rota é criada
+- **Algoritmo de otimização usa TSP (Traveling Salesman Problem)** para encontrar a melhor rota
 
 ### Metadados obrigatórios do Produto
 - nome
@@ -470,3 +756,43 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 - estoque_atual
 
 Os demais campos (código de barras, descrição, data de fabricação, lote, marca, fornecedor, categoria) são opcionais.
+
+### Metadados obrigatórios do Veículo
+- nome
+- tipo_combustivel (diesel ou gasolina)
+- consumo_por_km (deve ser maior que 0.01 L/km)
+
+### Metadados obrigatórios para Criar Rota
+- enderecos_destino (lista de endereços)
+- produtos_quantidades (lista com produto_id e quantidade)
+
+### Metadados opcionais para Criar Rota
+- nome_motorista (string, opcional)
+- veiculo_id (integer, opcional - se não informado, usa veículo padrão com consumo de 2.0 L/km)
+
+### Metadados retornados na Rota
+- **preco_combustivel_na_geracao**: Preço do combustível usado no cálculo da rota (R$/L)
+- **valor_rota**: Custo total da rota calculado com o preço do combustível da época
+- **distancia_total_km**: Distância total da rota otimizada
+- **tempo_estimado_minutos**: Tempo estimado para completar a rota
+
+### Dependências Adicionais
+O sistema de rotas requer as seguintes bibliotecas Python:
+- osmnx (para geocodificação e análise de redes)
+- networkx (para algoritmos de grafos)
+- ortools (para otimização TSP)
+- requests (para APIs externas)
+
+### API de Preços de Combustível
+O sistema integra com a API `combustivelapi.com.br` para obter preços atualizados de combustível:
+- **Endpoint:** `GET /api/rotas/precos-combustivel/`
+- **Fonte:** https://combustivelapi.com.br
+- **Fallback:** Valores padrão caso a API esteja indisponível
+- **Mapeamento:** Diesel (diesel, diesel_s10) e Gasolina (gasolina_comum, gasolina_aditivada)
+
+### Veículo Padrão
+Quando nenhum veículo é especificado na criação da rota:
+- **Consumo padrão:** 2.0 L/km
+- **Tipo de combustível:** Gasolina
+- **Nome exibido:** "Veículo Padrão"
+- **Cálculo:** Usa preço da gasolina atual para calcular o valor da rota
