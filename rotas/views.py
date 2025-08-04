@@ -73,6 +73,7 @@ class RotaCreateView(generics.CreateAPIView):
         veiculo_id = serializer.validated_data.get('veiculo_id')
         produtos_quantidades = serializer.validated_data['produtos_quantidades']
         nome_motorista = serializer.validated_data.get('nome_motorista', '')
+        preco_combustivel = serializer.validated_data.get('preco_combustivel')
         
         # Verifica se o veículo pertence ao usuário (se fornecido)
         veiculo = None
@@ -121,7 +122,7 @@ class RotaCreateView(generics.CreateAPIView):
         
         # Otimiza a rota (inclui retorno automático à origem/empresa)
         service = RotaOtimizacaoService()
-        resultado = service.otimizar_rota(enderecos, veiculo, produtos_quantidades)
+        resultado = service.otimizar_rota(enderecos, veiculo, produtos_quantidades, preco_combustivel)
         
         if not resultado['sucesso']:
             return Response(
@@ -138,6 +139,7 @@ class RotaCreateView(generics.CreateAPIView):
             veiculo=veiculo,
             nome_motorista=nome_motorista if nome_motorista else None,
             valor_rota=resultado['valor_rota'],
+            preco_combustivel_usado=resultado['preco_combustivel_usado'],
             produtos_quantidades=produtos_quantidades,
             link_maps=resultado['link_maps'],
             usuario=request.user
@@ -224,14 +226,23 @@ class PrecosCombustivelView(APIView):
         service = RotaOtimizacaoService()
         
         try:
-            # Obtém preços para ambos os tipos
+            # Obtém preços para todos os tipos de combustível
             preco_diesel = service.obter_preco_combustivel('diesel')
             preco_gasolina = service.obter_preco_combustivel('gasolina')
+            preco_etanol = service.obter_preco_combustivel('etanol')
+            preco_gnv = service.obter_preco_combustivel('gnv')
             
             return Response({
                 'diesel': preco_diesel,
                 'gasolina': preco_gasolina,
-                'unidade': 'R$/L',
+                'etanol': preco_etanol,
+                'gnv': preco_gnv,
+                'unidades': {
+                    'diesel': 'R$/L',
+                    'gasolina': 'R$/L',
+                    'etanol': 'R$/L',
+                    'gnv': 'R$/m³'
+                },
                 'fonte': 'combustivelapi.com.br',
                 'atualizado_em': '2024-01-20T10:30:00Z'  # TODO: Implementar timestamp real
             })

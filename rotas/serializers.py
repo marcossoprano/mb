@@ -4,6 +4,7 @@ from produtos.models import Produto
 
 class VeiculoSerializer(serializers.ModelSerializer):
     tipo_combustivel_display = serializers.CharField(source='get_tipo_combustivel_display', read_only=True)
+    eficiencia_display = serializers.CharField(source='get_eficiencia_display', read_only=True)
     
     class Meta:
         model = Veiculo
@@ -12,7 +13,8 @@ class VeiculoSerializer(serializers.ModelSerializer):
             'nome', 
             'tipo_combustivel', 
             'tipo_combustivel_display',
-            'consumo_por_km', 
+            'eficiencia_km_l',
+            'eficiencia_display',
             'data_cadastro', 
             'data_atualizacao'
         ]
@@ -36,6 +38,7 @@ class RotaSerializer(serializers.ModelSerializer):
             'veiculo_nome',
             'nome_motorista',
             'valor_rota',
+            'preco_combustivel_usado',
             'produtos_quantidades',
             'link_maps',
             'status',
@@ -55,19 +58,33 @@ class RotaSerializer(serializers.ModelSerializer):
     
     def get_preco_combustivel_na_geracao(self, obj):
         """
-        Calcula o preço do combustível usado na geração da rota
+        Retorna o preço do combustível usado na geração da rota
         """
+        if obj.preco_combustivel_usado:
+            return float(obj.preco_combustivel_usado)
+        
+        # Fallback: calcula o preço do combustível usado na geração da rota
         try:
             # Se tem veículo, usa o consumo dele
-            if obj.veiculo and obj.distancia_total_km > 0 and obj.veiculo.consumo_por_km > 0:
-                litros_consumidos = float(obj.distancia_total_km) * float(obj.veiculo.consumo_por_km)
-                if litros_consumidos > 0:
-                    preco_por_litro = float(obj.valor_rota) / litros_consumidos
-                    return round(preco_por_litro, 2)
-            # Se não tem veículo, usa consumo padrão (2.0 L/km)
+            if obj.veiculo and obj.distancia_total_km > 0 and obj.veiculo.eficiencia_km_l > 0:
+                eficiencia = float(obj.veiculo.eficiencia_km_l)
+                
+                if obj.veiculo.tipo_combustivel == 'gnv':
+                    # Para GNV: eficiência em km/m³
+                    metros_cubicos_consumidos = float(obj.distancia_total_km) / eficiencia
+                    if metros_cubicos_consumidos > 0:
+                        preco_por_m3 = float(obj.valor_rota) / metros_cubicos_consumidos
+                        return round(preco_por_m3, 2)
+                else:
+                    # Para outros combustíveis: eficiência em km/L
+                    litros_consumidos = float(obj.distancia_total_km) / eficiencia
+                    if litros_consumidos > 0:
+                        preco_por_litro = float(obj.valor_rota) / litros_consumidos
+                        return round(preco_por_litro, 2)
+            # Se não tem veículo, usa consumo padrão (8.0 km/L)
             elif obj.distancia_total_km > 0:
-                consumo_padrao = 2.0  # L/km
-                litros_consumidos = float(obj.distancia_total_km) * consumo_padrao
+                km_por_litro_padrao = 8.0  # km/L padrão
+                litros_consumidos = float(obj.distancia_total_km) / km_por_litro_padrao
                 if litros_consumidos > 0:
                     preco_por_litro = float(obj.valor_rota) / litros_consumidos
                     return round(preco_por_litro, 2)
@@ -92,6 +109,13 @@ class RotaCreateSerializer(serializers.Serializer):
     veiculo_id = serializers.IntegerField(
         required=False,
         help_text="ID do veículo (opcional - será usado valor padrão se não informado)"
+    )
+    preco_combustivel = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        required=False,
+        min_value=0.01,
+        help_text="Preço do combustível por litro ou m³ (opcional - será usado valor base se não informado)"
     )
     produtos_quantidades = serializers.ListField(
         child=serializers.DictField(),

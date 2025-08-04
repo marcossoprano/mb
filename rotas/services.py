@@ -7,7 +7,7 @@ import json
 
 class RotaOtimizacaoService:
     def __init__(self):
-        self.API_KEY_GOOGLE_MAPS = None  # Será configurado via settings
+        pass
         
     def obter_preco_combustivel(self, tipo_combustivel):
         """
@@ -17,8 +17,48 @@ class RotaOtimizacaoService:
         precos = {
             'diesel': 5.80,  # R$/L
             'gasolina': 6.36,  # R$/L
+            'etanol': 4.20,  # R$/L
+            'gnv': 3.50,  # R$/m³
         }
         return precos.get(tipo_combustivel, 5.80)
+    
+    def calcular_consumo_combustivel(self, distancia_total_km, veiculo):
+        """
+        Calcula o consumo de combustível baseado no tipo de combustível
+        """
+        if not veiculo:
+            # Veículo padrão: gasolina com 8.0 km/L
+            km_por_litro = 8.0
+            litros_consumidos = float(distancia_total_km) / km_por_litro
+            return litros_consumidos, 'litros'
+        
+        eficiencia = float(veiculo.eficiencia_km_l)
+        
+        if veiculo.tipo_combustivel == 'gnv':
+            # Para GNV: eficiência em km/m³
+            metros_cubicos_consumidos = float(distancia_total_km) / eficiencia
+            return metros_cubicos_consumidos, 'metros_cubicos'
+        else:
+            # Para outros combustíveis: eficiência em km/L
+            litros_consumidos = float(distancia_total_km) / eficiencia
+            return litros_consumidos, 'litros'
+    
+    def calcular_valor_rota(self, distancia_total_km, veiculo, preco_combustivel_personalizado=None):
+        """
+        Calcula o valor da rota baseado no consumo de combustível e preço
+        """
+        consumo_combustivel, unidade = self.calcular_consumo_combustivel(distancia_total_km, veiculo)
+        
+        # Se foi fornecido um preço personalizado, usa ele
+        if preco_combustivel_personalizado is not None:
+            preco_combustivel = float(preco_combustivel_personalizado)
+        else:
+            # Senão, usa o preço base do tipo de combustível
+            tipo_combustivel = veiculo.tipo_combustivel if veiculo else 'gasolina'
+            preco_combustivel = self.obter_preco_combustivel(tipo_combustivel)
+        
+        valor_rota = consumo_combustivel * preco_combustivel
+        return valor_rota, preco_combustivel
     
     def geocodificar_endereco(self, endereco):
         """
@@ -211,7 +251,7 @@ class RotaOtimizacaoService:
         
         return link
     
-    def otimizar_rota(self, enderecos, veiculo=None, produtos_quantidades=None):
+    def otimizar_rota(self, enderecos, veiculo=None, produtos_quantidades=None, preco_combustivel_personalizado=None):
         """
         Função principal para otimizar a rota
         """
@@ -288,15 +328,7 @@ class RotaOtimizacaoService:
                         distancia_total_km, tempo_estimado_minutos = self.calcular_distancia_real(matriz, rota_otimizada)
                         
                         # 8. Calcula valor da rota
-                        if veiculo:
-                            preco_combustivel = self.obter_preco_combustivel(veiculo.tipo_combustivel)
-                            consumo_por_km = float(veiculo.consumo_por_km)
-                        else:
-                            # Usa valores padrão se não houver veículo
-                            preco_combustivel = self.obter_preco_combustivel('gasolina')  # padrão
-                            consumo_por_km = 2.0  # L/km padrão
-                        
-                        valor_rota = float(distancia_total_km) * consumo_por_km * preco_combustivel
+                        valor_rota, preco_combustivel = self.calcular_valor_rota(distancia_total_km, veiculo, preco_combustivel_personalizado)
                         
                         # 9. Gera link do Maps
                         link_maps = self.gerar_link_maps(coordenadas_otimizadas)
@@ -307,6 +339,7 @@ class RotaOtimizacaoService:
                             'distancia_total_km': distancia_total_km,
                             'tempo_estimado_minutos': tempo_estimado_minutos,
                             'valor_rota': valor_rota,
+                            'preco_combustivel_usado': preco_combustivel,
                             'link_maps': link_maps,
                             'sucesso': True
                         }
@@ -326,15 +359,7 @@ class RotaOtimizacaoService:
             # Para o fallback, usa distância em linha reta (já que não temos matriz)
             distancia_total_km, tempo_estimado_minutos = self.calcular_distancia_tempo(coordenadas_otimizadas)
             
-            if veiculo:
-                preco_combustivel = self.obter_preco_combustivel(veiculo.tipo_combustivel)
-                consumo_por_km = float(veiculo.consumo_por_km)
-            else:
-                # Usa valores padrão se não houver veículo
-                preco_combustivel = self.obter_preco_combustivel('gasolina')  # padrão
-                consumo_por_km = 2.0  # L/km padrão
-            
-            valor_rota = float(distancia_total_km) * consumo_por_km * preco_combustivel
+            valor_rota, preco_combustivel = self.calcular_valor_rota(distancia_total_km, veiculo, preco_combustivel_personalizado)
             link_maps = self.gerar_link_maps(coordenadas_otimizadas)
             
             return {
@@ -343,6 +368,7 @@ class RotaOtimizacaoService:
                 'distancia_total_km': distancia_total_km,
                 'tempo_estimado_minutos': tempo_estimado_minutos,
                 'valor_rota': valor_rota,
+                'preco_combustivel_usado': preco_combustivel,
                 'link_maps': link_maps,
                 'sucesso': True
             }

@@ -7,6 +7,8 @@ class Veiculo(models.Model):
     TIPO_COMBUSTIVEL_CHOICES = [
         ('diesel', 'Diesel'),
         ('gasolina', 'Gasolina'),
+        ('etanol', 'Etanol'),
+        ('gnv', 'Gás Veicular (GNV)'),
     ]
     
     id = models.AutoField(primary_key=True)
@@ -16,11 +18,11 @@ class Veiculo(models.Model):
         choices=TIPO_COMBUSTIVEL_CHOICES,
         verbose_name="Tipo de Combustível"
     )
-    consumo_por_km = models.DecimalField(
+    eficiencia_km_l = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         validators=[MinValueValidator(0.01)],
-        verbose_name="Consumo de Combustível por KM (L/km)"
+        verbose_name="Eficiência (km/L para líquidos, km/m³ para GNV)"
     )
     usuario = models.ForeignKey(
         Usuario,
@@ -37,6 +39,21 @@ class Veiculo(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.get_tipo_combustivel_display()})"
+    
+    def get_unidade_eficiencia(self):
+        """
+        Retorna a unidade de eficiência baseada no tipo de combustível
+        """
+        if self.tipo_combustivel == 'gnv':
+            return 'km/m³'
+        else:
+            return 'km/L'
+    
+    def get_eficiencia_display(self):
+        """
+        Retorna a eficiência formatada com a unidade correta
+        """
+        return f"{self.eficiencia_km_l} {self.get_unidade_eficiencia()}"
 
 class Rota(models.Model):
     STATUS_CHOICES = [
@@ -71,6 +88,13 @@ class Rota(models.Model):
         max_digits=10,
         decimal_places=2,
         verbose_name="Valor da Rota (R$)"
+    )
+    preco_combustivel_usado = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Preço do Combustível Usado (R$/L ou R$/m³)"
     )
     produtos_quantidades = models.JSONField(verbose_name="Produtos e Quantidades")
     link_maps = models.URLField(max_length=500, verbose_name="Link do Google Maps")
