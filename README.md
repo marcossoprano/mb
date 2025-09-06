@@ -936,3 +936,87 @@ Quando nenhum veículo é especificado na criação da rota:
 - **Tipo de combustível:** Gasolina
 - **Nome exibido:** "Veículo Padrão"
 - **Cálculo:** Usa preço da gasolina atual para calcular o valor da rota
+
+---
+
+## 🗂️ Exportação de Produtos para CSV
+
+### Endpoint
+`GET /api/planilhas/exportar-produtos/`
+
+### Autenticação
+- Necessário enviar o token JWT no header:
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+### Teste no Postman
+1. Faça login e obtenha o token de acesso.
+2. Crie uma requisição GET para:
+   ```
+   http://127.0.0.1:8000/api/planilhas/exportar-produtos/
+   ```
+3. No Postman, vá em "Headers" e adicione:
+   - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+4. Execute a requisição.
+5. O Postman fará o download do arquivo `produtos.csv` contendo todos os produtos do usuário logado.
+
+### Estrutura do CSV exportado
+| ID | Nome | Descrição | Preço Custo | Preço Venda | Estoque Mínimo | Estoque Atual | Validade | Código Barras | Data Fabricação | Lote | Marca | Fornecedor | Categoria |
+|----|------|-----------|-------------|-------------|----------------|--------------|----------|---------------|-----------------|------|-------|------------|-----------|
+| ...dados... |
+
+- Todos os produtos exportados são filtrados por usuário (multi-tenant).
+- As colunas são organizadas e compatíveis para futura importação.
+
+---
+
+## 🗂️ Importação de Produtos via CSV
+
+### Endpoint
+`POST /api/planilhas/importar-produtos/`
+
+### Autenticação
+- Necessário enviar o token JWT no header:
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+### Teste no Postman
+1. Faça login e obtenha o token de acesso.
+2. Crie uma requisição POST para:
+   ```
+   http://127.0.0.1:8000/api/planilhas/importar-produtos/
+   ```
+3. No Postman, vá em "Body" e selecione "form-data".
+   - Adicione o campo `arquivo` e selecione o arquivo `.csv`.
+   - Adicione o campo `fornecedor_id` com o ID do fornecedor já cadastrado.
+4. No Postman, vá em "Headers" e adicione:
+   - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+5. Execute a requisição.
+6. O sistema irá importar todos os produtos do arquivo, associando ao fornecedor escolhido.
+
+### Modelo da planilha CSV
+A planilha deve conter o cabeçalho abaixo (exatamente igual):
+
+| Nome | Descrição | Preço Custo | Preço Venda | Estoque Mínimo | Estoque Atual | Validade | Código Barras | Data Fabricação | Lote | Marca |
+|------|-----------|-------------|-------------|----------------|--------------|----------|---------------|-----------------|------|-------|
+| Produto A | Descrição A | 10.00 | 15.00 | 5 | 10 | 2025-12-31 | 1234567890123 | 2024-01-01 | LOTE001 | MarcaX |
+| Produto B | Descrição B | 20.00 | 30.00 | 2 | 5 | 2025-11-30 | 9876543210987 | 2024-02-01 | LOTE002 | MarcaY |
+
+- Os campos podem ser deixados em branco se não forem obrigatórios.
+- Datas devem estar no formato `YYYY-MM-DD`.
+- O fornecedor é escolhido via campo `fornecedor_id` no corpo da requisição.
+- Todos os produtos da planilha serão associados ao mesmo fornecedor.
+
+### Resposta da importação
+- Se todos os produtos forem importados com sucesso:
+  ```json
+  {
+    "produtos_importados": ["Produto A", "Produto B"],
+    "erros": []
+  }
+  ```
+- Se houver erros em alguma linha:
+  ```json
+  {
+    "produtos_importados": ["Produto A"],
+    "erros": ["Linha 3: Preço de venda não pode ser menor que o preço de custo."]
+  }
+  ```

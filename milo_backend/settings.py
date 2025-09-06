@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'usuarios',
     'produtos',
     'rotas',
+    'planilhas',  # Novo app para importação/exportação de planilhas
     'corsheaders',
 ]
 
