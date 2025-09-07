@@ -993,17 +993,19 @@ Quando nenhum veículo é especificado na criação da rota:
 6. O sistema irá importar todos os produtos do arquivo, associando ao fornecedor escolhido.
 
 ### Modelo da planilha CSV
+
 A planilha deve conter o cabeçalho abaixo (exatamente igual):
 
-| Nome | Descrição | Preço Custo | Preço Venda | Estoque Mínimo | Estoque Atual | Validade | Código Barras | Data Fabricação | Lote | Marca |
-|------|-----------|-------------|-------------|----------------|--------------|----------|---------------|-----------------|------|-------|
-| Produto A | Descrição A | 10.00 | 15.00 | 5 | 10 | 2025-12-31 | 1234567890123 | 2024-01-01 | LOTE001 | MarcaX |
-| Produto B | Descrição B | 20.00 | 30.00 | 2 | 5 | 2025-11-30 | 9876543210987 | 2024-02-01 | LOTE002 | MarcaY |
+| Nome | Descrição | Preço Custo | Preço Venda | Estoque Mínimo | Estoque Atual | Validade | Código Barras | Data Fabricação | Lote | Marca | Categoria |
+|------|-----------|-------------|-------------|----------------|--------------|----------|---------------|-----------------|------|-------|-----------|
+| Produto A | Descrição A | 10.00 | 15.00 | 5 | 10 | 2025-12-31 | 1234567890123 | 2024-01-01 | LOTE001 | MarcaX | Alimentos |
+| Produto B | Descrição B | 20.00 | 30.00 | 2 | 5 | 2025-11-30 | 9876543210987 | 2024-02-01 | LOTE002 | MarcaY | Higiene |
 
-- Os campos podem ser deixados em branco se não forem obrigatórios.
-- Datas devem estar no formato `YYYY-MM-DD`.
-- O fornecedor é escolhido via campo `fornecedor_id` no corpo da requisição.
-- Todos os produtos da planilha serão associados ao mesmo fornecedor.
+O campo "Categoria" pode ser preenchido com o nome da categoria desejada. Se a categoria não existir para o usuário, ela será criada automaticamente.
+Os campos podem ser deixados em branco se não forem obrigatórios.
+Datas devem estar no formato `YYYY-MM-DD`.
+O fornecedor é escolhido via campo `fornecedor_id` no corpo da requisição.
+Todos os produtos da planilha serão associados ao mesmo fornecedor.
 
 ### Resposta da importação
 - Se todos os produtos forem importados com sucesso:
