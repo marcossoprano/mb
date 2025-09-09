@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rotas',
     'planilhas',  # Novo app para importação/exportação de planilhas
     'corsheaders',
+    'relatorios',
 ]
 
 MIDDLEWARE = [

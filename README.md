@@ -769,6 +769,41 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 - `em_progresso` - Em Progresso
 - `concluido` - Concluído
 
+#### 📄 Relatórios em PDF
+
+- **Endpoint:** `GET http://127.0.0.1:8000/api/relatorios/conta/pdf/`
+- **Headers:**
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Query Params:**
+  - `periodo`: `ultimo_mes` (padrão) | `ultimos_6_meses` | `ultimo_ano` | `custom`
+  - Se `periodo=custom`, informar também: `inicio=YYYY-MM-DD` e `fim=YYYY-MM-DD`
+- **Exemplos:**
+  - Último mês:
+    ```
+    GET http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=ultimo_mes
+    ```
+  - Últimos 6 meses:
+    ```
+    GET http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=ultimos_6_meses
+    ```
+  - Último ano:
+    ```
+    GET http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=ultimo_ano
+    ```
+  - Período customizado:
+    ```
+    GET http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=custom&inicio=2025-01-01&fim=2025-03-31
+    ```
+- **Resposta:** download de um arquivo PDF contendo:
+  - Entradas e saídas de produtos no período
+  - Rotas concluídas e totais no período
+  - Lucro estimado considerando apenas produtos enviados em rotas com status `concluido`
+  - Gráficos (Entradas vs Saídas, Top produtos enviados em rotas concluídas)
+  - Tabela de produtos menos enviados em rotas concluídas
+- **Observações:**
+  - Os dados são filtrados por usuário autenticado (multi-tenant). Um usuário não vê dados de outro.
+  - O cálculo de lucro e os rankings consideram apenas rotas com `status=concluido`.
+
 #### ⛽ **Preços de Combustível**
 
 #### Obter Preços Atuais
