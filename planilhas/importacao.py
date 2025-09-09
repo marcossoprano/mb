@@ -26,6 +26,13 @@ def importar_produtos_csv(request):
     with transaction.atomic():
         for i, row in enumerate(reader, start=2):
             try:
+                categoria_nome = row.get('Categoria')
+                categoria_obj = None
+                if categoria_nome:
+                    categoria_obj, _ = Categoria.objects.get_or_create(
+                        nome=categoria_nome.strip(),
+                        usuario=request.user
+                    )
                 produto = Produto(
                     nome=row.get('Nome'),
                     preco_custo=row.get('Preço Custo'),
@@ -39,6 +46,7 @@ def importar_produtos_csv(request):
                     lote=row.get('Lote') or '',
                     marca=row.get('Marca') or '',
                     fornecedor=fornecedor,
+                    categoria=categoria_obj,
                     usuario=request.user
                 )
                 produto.full_clean()
