@@ -19,5 +19,8 @@ ENV/
 # VSCode
 .vscode/
 
+# Cache rotas
+cache/
+
 # Arquivo de credenciais do banco
 DBCREDENTIALS.env 

@@ -12,6 +12,16 @@ from .serializers import (
     RotaStatusUpdateSerializer
 )
 from .services import RotaOtimizacaoService
+
+# Instância singleton para reutilizar caches entre requisições
+_rota_service_instance = None
+
+def get_rota_service():
+    """Retorna instância singleton do serviço de otimização"""
+    global _rota_service_instance
+    if _rota_service_instance is None:
+        _rota_service_instance = RotaOtimizacaoService()
+    return _rota_service_instance
 from produtos.models import Produto, MovimentacaoEstoque
 
 class VeiculoCreateView(generics.CreateAPIView):
@@ -86,34 +96,60 @@ class RotaCreateView(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Valida produtos e quantidades
+        # Valida produtos e quantidades (OTIMIZADO - consulta em lote)
         produtos_validados = []
-        for item in produtos_quantidades:
-            produto_id = item.get('produto_id')
-            quantidade = item.get('quantidade', 0)
+        
+        # Extrai IDs dos produtos para consulta em lote
+        produto_ids = [item.get('produto_id') for item in produtos_quantidades if item.get('produto_id')]
+        quantidades = [item.get('quantidade', 0) for item in produtos_quantidades]
+        
+        # Validações básicas
+        if not produto_ids or any(q <= 0 for q in quantidades):
+            return Response(
+                {'erro': 'Produto ID e quantidade são obrigatórios e quantidade deve ser > 0'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Consulta em lote todos os produtos
+        try:
+            produtos_queryset = Produto.objects.filter(
+                idProduto__in=produto_ids, 
+                usuario=request.user
+            ).values('idProduto', 'nome', 'estoque_atual')
             
-            if not produto_id or quantidade <= 0:
-                return Response(
-                    {'erro': 'Produto ID e quantidade são obrigatórios e quantidade deve ser > 0'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Cria dicionário para acesso rápido
+            produtos_dict = {p['idProduto']: p for p in produtos_queryset}
             
-            try:
-                produto = Produto.objects.get(idProduto=produto_id, usuario=request.user)
-                if produto.estoque_atual < quantidade:
+            # Valida cada produto
+            for i, item in enumerate(produtos_quantidades):
+                produto_id = item.get('produto_id')
+                quantidade = item.get('quantidade', 0)
+                
+                if produto_id not in produtos_dict:
                     return Response(
-                        {'erro': f'Estoque insuficiente para o produto {produto.nome}. Disponível: {produto.estoque_atual}'},
+                        {'erro': f'Produto com ID {produto_id} não encontrado'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+                
+                produto_data = produtos_dict[produto_id]
+                if produto_data['estoque_atual'] < quantidade:
+                    return Response(
+                        {'erro': f'Estoque insuficiente para o produto {produto_data["nome"]}. Disponível: {produto_data["estoque_atual"]}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Busca o objeto completo do produto para uso posterior
+                produto = Produto.objects.get(idProduto=produto_id, usuario=request.user)
                 produtos_validados.append({
                     'produto': produto,
                     'quantidade': quantidade
                 })
-            except Produto.DoesNotExist:
-                return Response(
-                    {'erro': f'Produto com ID {produto_id} não encontrado'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                
+        except Exception as e:
+            return Response(
+                {'erro': f'Erro na validação de produtos: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Prepara endereços (origem + destinos)
         # A rota sempre começa e termina na empresa (origem)
@@ -121,7 +157,8 @@ class RotaCreateView(generics.CreateAPIView):
         enderecos = [endereco_origem] + serializer.validated_data['enderecos_destino']
         
         # Otimiza a rota (inclui retorno automático à origem/empresa)
-        service = RotaOtimizacaoService()
+        # Usa instância singleton para reutilizar caches
+        service = get_rota_service()
         resultado = service.otimizar_rota(enderecos, veiculo, produtos_quantidades, preco_combustivel)
         
         if not resultado['sucesso']:
@@ -223,7 +260,7 @@ class PrecosCombustivelView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        service = RotaOtimizacaoService()
+        service = get_rota_service()  # Usa singleton para cache
         
         try:
             # Obtém preços para todos os tipos de combustível

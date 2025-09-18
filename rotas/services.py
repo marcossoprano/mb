@@ -4,23 +4,55 @@ from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 import requests
 from decimal import Decimal
 import json
+import hashlib
+import time
+from functools import lru_cache
 
 class RotaOtimizacaoService:
     def __init__(self):
-        pass
+        # Cache em memória para geocodificação (endereço -> coordenadas)
+        self._geocoding_cache = {}
+        self._geocoding_ttl = 24 * 60 * 60  # 24 horas em segundos
+        
+        # Cache em memória para grafos OSMnx (região -> grafo)
+        self._grafos_cache = {}
+        self._grafos_ttl = 60 * 60  # 1 hora em segundos
+        
+        # Cache para preços de combustível
+        self._precos_cache = {}
+        self._precos_ttl = 30 * 60  # 30 minutos em segundos
+        
+        # Contador para limpeza periódica de cache
+        self._cache_cleanup_counter = 0
         
     def obter_preco_combustivel(self, tipo_combustivel):
         """
-        Retorna preços fixos de combustível
+        Retorna preços de combustível com cache
         """
-        # Valores fixos de combustível
+        # Verifica cache primeiro
+        cache_key = f"preco_{tipo_combustivel}"
+        if cache_key in self._precos_cache:
+            cached_data = self._precos_cache[cache_key]
+            if time.time() - cached_data['timestamp'] < self._precos_ttl:
+                return cached_data['preco']
+        
+        # Valores fixos de combustível (mantém compatibilidade)
         precos = {
             'diesel': 5.80,  # R$/L
             'gasolina': 6.36,  # R$/L
             'etanol': 4.20,  # R$/L
             'gnv': 3.50,  # R$/m³
         }
-        return precos.get(tipo_combustivel, 5.80)
+        
+        preco = precos.get(tipo_combustivel, 5.80)
+        
+        # Armazena no cache
+        self._precos_cache[cache_key] = {
+            'preco': preco,
+            'timestamp': time.time()
+        }
+        
+        return preco
     
     def calcular_consumo_combustivel(self, distancia_total_km, veiculo):
         """
@@ -62,15 +94,32 @@ class RotaOtimizacaoService:
     
     def geocodificar_endereco(self, endereco):
         """
-        Geocodifica um endereço para coordenadas
-        Por enquanto, usa OSMnx para geocodificação
+        Geocodifica um endereço para coordenadas com cache
         """
+        # Normaliza o endereço para usar como chave de cache
+        endereco_normalizado = endereco.lower().strip()
+        cache_key = hashlib.md5(endereco_normalizado.encode()).hexdigest()
+        
+        # Verifica cache primeiro
+        if cache_key in self._geocoding_cache:
+            cached_data = self._geocoding_cache[cache_key]
+            if time.time() - cached_data['timestamp'] < self._geocoding_ttl:
+                return cached_data['coordenadas']
+        
         try:
-            return ox.geocode(endereco)
+            coordenadas = ox.geocode(endereco)
+            if coordenadas:
+                # Armazena no cache
+                self._geocoding_cache[cache_key] = {
+                    'coordenadas': coordenadas,
+                    'timestamp': time.time()
+                }
+                return coordenadas
         except Exception as e:
-            # Fallback: coordenadas de Maceió (já que os endereços são de lá)
             print(f"Erro na geocodificação de {endereco}: {e}")
-            return None
+        
+        # Fallback: coordenadas de Maceió (já que os endereços são de lá)
+        return None
     
     
     def resolver_tsp(self, matriz):
@@ -90,11 +139,24 @@ class RotaOtimizacaoService:
         transit_callback_index = routing.RegisterTransitCallback(callback)
         routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-        # Configura estratégia de solução inicial
+        # Configura estratégia de solução otimizada
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-        )
+        
+        # Para poucos pontos, usa estratégia mais rápida
+        if len(matriz) <= 4:
+            search_parameters.first_solution_strategy = (
+                routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+            )
+            search_parameters.time_limit_ms = 1000  # 1 segundo máximo
+        else:
+            # Para muitos pontos, usa estratégia balanceada
+            search_parameters.first_solution_strategy = (
+                routing_enums_pb2.FirstSolutionStrategy.SAVINGS
+            )
+            search_parameters.time_limit_ms = 5000  # 5 segundos máximo
+        
+        # Otimizações adicionais
+        search_parameters.log_search = False  # Desabilita logs para performance
 
         solution = routing.SolveWithParameters(search_parameters)
 
@@ -251,12 +313,153 @@ class RotaOtimizacaoService:
         
         return link
     
+    def _calcular_matriz_otimizada(self, G, nos, coordenadas):
+        """
+        Calcula matriz de distâncias com otimizações de performance
+        """
+        n = len(nos)
+        matriz = [[0]*n for _ in range(n)]
+        
+        # Para poucos pontos (<= 4), usa algoritmo mais simples
+        if n <= 4:
+            return self._calcular_matriz_simples(G, nos, coordenadas)
+        
+        # Para muitos pontos, usa otimizações mais avançadas
+        for i in range(n):
+            for j in range(i+1, n):  # Calcula apenas metade da matriz (simétrica)
+                try:
+                    # Tenta calcular distância real no grafo
+                    distancia = int(nx.shortest_path_length(G, nos[i], nos[j], weight='length'))
+                    matriz[i][j] = distancia
+                    matriz[j][i] = distancia  # Matriz simétrica
+                except Exception as e:
+                    # Fallback para distância em linha reta
+                    distancia = self._calcular_distancia_haversine(coordenadas[i], coordenadas[j])
+                    matriz[i][j] = distancia
+                    matriz[j][i] = distancia
+        
+        return matriz
+    
+    def _calcular_matriz_simples(self, G, nos, coordenadas):
+        """
+        Calcula matriz simples para poucos pontos
+        """
+        n = len(nos)
+        matriz = [[0]*n for _ in range(n)]
+        
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    try:
+                        distancia = int(nx.shortest_path_length(G, nos[i], nos[j], weight='length'))
+                        matriz[i][j] = distancia
+                    except Exception as e:
+                        # Fallback para distância em linha reta
+                        matriz[i][j] = self._calcular_distancia_haversine(coordenadas[i], coordenadas[j])
+        
+        return matriz
+    
+    def _calcular_distancia_haversine(self, coord1, coord2):
+        """
+        Calcula distância em linha reta usando fórmula de Haversine
+        """
+        import math
+        lat1, lon1 = coord1
+        lat2, lon2 = coord2
+        
+        R = 6371000  # Raio da Terra em metros
+        lat1_rad = math.radians(lat1)
+        lat2_rad = math.radians(lat2)
+        delta_lat = math.radians(lat2 - lat1)
+        delta_lon = math.radians(lon2 - lon1)
+        
+        a = (math.sin(delta_lat/2) * math.sin(delta_lat/2) +
+             math.cos(lat1_rad) * math.cos(lat2_rad) *
+             math.sin(delta_lon/2) * math.sin(delta_lon/2))
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        
+        return int(R * c)
+    
+    def _limpar_cache_expirado(self):
+        """
+        Remove entradas expiradas dos caches para evitar vazamento de memória
+        """
+        current_time = time.time()
+        
+        # Limpa cache de geocodificação
+        expired_keys = [
+            key for key, data in self._geocoding_cache.items()
+            if current_time - data['timestamp'] > self._geocoding_ttl
+        ]
+        for key in expired_keys:
+            del self._geocoding_cache[key]
+        
+        # Limpa cache de grafos
+        expired_keys = [
+            key for key, data in self._grafos_cache.items()
+            if current_time - data['timestamp'] > self._grafos_ttl
+        ]
+        for key in expired_keys:
+            del self._grafos_cache[key]
+        
+        # Limpa cache de preços
+        expired_keys = [
+            key for key, data in self._precos_cache.items()
+            if current_time - data['timestamp'] > self._precos_ttl
+        ]
+        for key in expired_keys:
+            del self._precos_cache[key]
+    
+    def _obter_grafo_regiao(self, coordenadas):
+        """
+        Obtém grafo OSMnx com cache por região geográfica
+        """
+        # Calcula região baseada nas coordenadas (grid de 10km)
+        media_lat = sum(lat for lat, lon in coordenadas) / len(coordenadas)
+        media_lon = sum(lon for lat, lon in coordenadas) / len(coordenadas)
+        
+        # Cria chave de cache baseada na região (arredonda para grid de ~10km)
+        grid_lat = round(media_lat / 0.09) * 0.09  # ~10km em graus
+        grid_lon = round(media_lon / 0.09) * 0.09
+        cache_key = f"grafo_{grid_lat:.3f}_{grid_lon:.3f}"
+        
+        # Verifica cache primeiro
+        if cache_key in self._grafos_cache:
+            cached_data = self._grafos_cache[cache_key]
+            if time.time() - cached_data['timestamp'] < self._grafos_ttl:
+                return cached_data['grafo']
+        
+        try:
+            # Baixa o grafo com configurações otimizadas
+            G = ox.graph_from_point(
+                (media_lat, media_lon), 
+                dist=6000,  # Reduzido de 8000 para 6000 (melhor performance)
+                network_type='drive',
+                simplify=True,
+                retain_all=False  # Remove nós desnecessários
+            )
+            
+            # Armazena no cache
+            self._grafos_cache[cache_key] = {
+                'grafo': G,
+                'timestamp': time.time()
+            }
+            
+            return G
+        except Exception as e:
+            print(f"Erro ao baixar grafo: {e}")
+            return None
+
     def otimizar_rota(self, enderecos, veiculo=None, produtos_quantidades=None, preco_combustivel_personalizado=None):
         """
-        Função principal para otimizar a rota
+        Função principal para otimizar a rota (OTIMIZADA)
         """
         try:
-            # 1. Geocodifica todos os endereços
+            # Limpeza periódica de cache (a cada 10 otimizações)
+            self._cache_cleanup_counter += 1
+            if self._cache_cleanup_counter % 10 == 0:
+                self._limpar_cache_expirado()
+            # 1. Geocodifica todos os endereços (com cache)
             coordenadas = [self.geocodificar_endereco(endereco) for endereco in enderecos]
             
             # Verifica se todas as coordenadas foram obtidas
@@ -266,86 +469,55 @@ class RotaOtimizacaoService:
                     'erro': 'Não foi possível geocodificar todos os endereços'
                 }
             
-            # 2. Baixa o grafo com ruas em torno de todos os pontos
+            # 2. Obtém grafo com cache por região
             if len(coordenadas) > 1:
-                media_lat = sum(lat for lat, lon in coordenadas) / len(coordenadas)
-                media_lon = sum(lon for lat, lon in coordenadas) / len(coordenadas)
+                G = self._obter_grafo_regiao(coordenadas)
                 
-                try:
-                    # Tenta baixar o grafo com configurações mais robustas
-                    G = ox.graph_from_point(
-                        (media_lat, media_lon), 
-                        dist=8000, 
-                        network_type='drive',
-                        simplify=True
-                    )
-                    
-                    # 3. Mapeia coordenadas para nós do grafo
-                    nos = [ox.distance.nearest_nodes(G, lon, lat) for lat, lon in coordenadas]
-                    
-                    # 4. Calcula a matriz de distâncias reais (em metros)
-                    n = len(nos)
-                    matriz = [[0]*n for _ in range(n)]
-                    
-                    for i in range(n):
-                        for j in range(n):
-                            if i != j:
-                                try:
-                                    distancia = int(nx.shortest_path_length(G, nos[i], nos[j], weight='length'))
-                                    matriz[i][j] = distancia
-                                except Exception as e:
-                                    # Fallback para distância em linha reta
-                                    lat1, lon1 = coordenadas[i]
-                                    lat2, lon2 = coordenadas[j]
-                                    import math
-                                    R = 6371000  # Raio da Terra em metros
-                                    lat1_rad = math.radians(lat1)
-                                    lat2_rad = math.radians(lat2)
-                                    delta_lat = math.radians(lat2 - lat1)
-                                    delta_lon = math.radians(lon2 - lon1)
-                                    a = (math.sin(delta_lat/2) * math.sin(delta_lat/2) +
-                                         math.cos(lat1_rad) * math.cos(lat2_rad) *
-                                         math.sin(delta_lon/2) * math.sin(delta_lon/2))
-                                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-                                    distancia = int(R * c)
-                                    matriz[i][j] = distancia
-                    
-                    # 5. Resolve o TSP
-                    rota_otimizada = self.resolver_tsp(matriz)
-                    
-                    if rota_otimizada:
-                        # 6. Converte índices em coordenadas otimizadas
-                        coordenadas_otimizadas = [coordenadas[i] for i in rota_otimizada]
-                        enderecos_otimizados = [enderecos[i] for i in rota_otimizada]
+                if G is not None:
+                    try:
+                        # 3. Mapeia coordenadas para nós do grafo
+                        nos = [ox.distance.nearest_nodes(G, lon, lat) for lat, lon in coordenadas]
                         
-                        # Garante que a rota sempre termine na origem (empresa)
-                        # Se o último ponto não for a origem, adiciona a origem como ponto final
-                        if coordenadas_otimizadas and coordenadas_otimizadas[-1] != coordenadas_otimizadas[0]:
-                            coordenadas_otimizadas.append(coordenadas_otimizadas[0])
-                            enderecos_otimizados.append(enderecos[0])
+                        # 4. Calcula a matriz de distâncias otimizada
+                        n = len(nos)
+                        matriz = self._calcular_matriz_otimizada(G, nos, coordenadas)
                         
-                        # 7. Calcula distância real usando a matriz e tempo
-                        distancia_total_km, tempo_estimado_minutos = self.calcular_distancia_real(matriz, rota_otimizada)
+                        # 5. Resolve o TSP
+                        rota_otimizada = self.resolver_tsp(matriz)
                         
-                        # 8. Calcula valor da rota
-                        valor_rota, preco_combustivel = self.calcular_valor_rota(distancia_total_km, veiculo, preco_combustivel_personalizado)
-                        
-                        # 9. Gera link do Maps
-                        link_maps = self.gerar_link_maps(coordenadas_otimizadas)
-                        
-                        return {
-                            'enderecos_otimizados': enderecos_otimizados,
-                            'coordenadas_otimizadas': coordenadas_otimizadas,  # Inclui retorno à origem
-                            'distancia_total_km': distancia_total_km,
-                            'tempo_estimado_minutos': tempo_estimado_minutos,
-                            'valor_rota': valor_rota,
-                            'preco_combustivel_usado': preco_combustivel,
-                            'link_maps': link_maps,
-                            'sucesso': True
-                        }
+                        if rota_otimizada:
+                            # 6. Converte índices em coordenadas otimizadas
+                            coordenadas_otimizadas = [coordenadas[i] for i in rota_otimizada]
+                            enderecos_otimizados = [enderecos[i] for i in rota_otimizada]
+                            
+                            # Garante que a rota sempre termine na origem (empresa)
+                            # Se o último ponto não for a origem, adiciona a origem como ponto final
+                            if coordenadas_otimizadas and coordenadas_otimizadas[-1] != coordenadas_otimizadas[0]:
+                                coordenadas_otimizadas.append(coordenadas_otimizadas[0])
+                                enderecos_otimizados.append(enderecos[0])
+                            
+                            # 7. Calcula distância real usando a matriz e tempo
+                            distancia_total_km, tempo_estimado_minutos = self.calcular_distancia_real(matriz, rota_otimizada)
+                            
+                            # 8. Calcula valor da rota
+                            valor_rota, preco_combustivel = self.calcular_valor_rota(distancia_total_km, veiculo, preco_combustivel_personalizado)
+                            
+                            # 9. Gera link do Maps
+                            link_maps = self.gerar_link_maps(coordenadas_otimizadas)
+                            
+                            return {
+                                'enderecos_otimizados': enderecos_otimizados,
+                                'coordenadas_otimizadas': coordenadas_otimizadas,  # Inclui retorno à origem
+                                'distancia_total_km': distancia_total_km,
+                                'tempo_estimado_minutos': tempo_estimado_minutos,
+                                'valor_rota': valor_rota,
+                                'preco_combustivel_usado': preco_combustivel,
+                                'link_maps': link_maps,
+                                'sucesso': True
+                            }
                     
-                except Exception as e:
-                    print(f"Erro ao processar grafo: {e}")
+                    except Exception as e:
+                        print(f"Erro ao processar grafo: {e}")
             
             # Fallback: rota simples sem otimização
             coordenadas_otimizadas = coordenadas.copy()
