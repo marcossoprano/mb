@@ -154,6 +154,68 @@ class ProdutoCreateWithCategoriaSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+
+from .models import Venda
+
+class ProdutoVendaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Produto
+        fields = [
+            'idProduto',
+            'nome',
+            'preco_custo',
+            'preco_venda',
+        ]
+
+class VendaListSerializer(serializers.ModelSerializer):
+    produtos = ProdutoVendaSerializer(many=True, read_only=True)
+    lucro = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Venda
+        fields = [
+            'idVenda',
+            'data_venda',
+            'produtos',
+            'valor_total',
+            'lucro',
+            'observacao',
+        ]
+        read_only_fields = ['idVenda', 'data_venda', 'lucro']
+
+    def get_lucro(self, obj):
+        custo_total = sum([p.preco_custo for p in obj.produtos.all()])
+        return float(obj.valor_total) - float(custo_total)
+
+class VendaSerializer(serializers.ModelSerializer):
+    produtos = serializers.PrimaryKeyRelatedField(many=True, queryset=Produto.objects.all())
+    lucro = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Venda
+        fields = [
+            'idVenda',
+            'data_venda',
+            'produtos',
+            'valor_total',
+            'lucro',
+            'observacao',
+            'usuario',
+        ]
+        read_only_fields = ['idVenda', 'data_venda', 'usuario', 'lucro']
+
+    def get_lucro(self, obj):
+        custo_total = sum([p.preco_custo for p in obj.produtos.all()])
+        return float(obj.valor_total) - float(custo_total)
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        produtos = validated_data.pop('produtos')
+        validated_data.pop('usuario', None)
+        venda = Venda.objects.create(usuario=request.user, **validated_data)
+        venda.produtos.set(produtos)
+        return venda
+
 class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
     produto_nome = serializers.CharField(source='produto.nome', read_only=True)
     tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)

@@ -50,7 +50,7 @@ class Veiculo(models.Model):
             return 'km/L'
     
     def get_eficiencia_display(self):
-        """
+        """ 
         Retorna a eficiência formatada com a unidade correta
         """
         return f"{self.eficiencia_km_l} {self.get_unidade_eficiencia()}"
@@ -81,6 +81,35 @@ class Rota(models.Model):
     nome_motorista = models.CharField(
         max_length=100, 
         verbose_name="Nome do Motorista",
+        null=True,
+        blank=True
+    )
+    destino = models.CharField(
+        max_length=100,
+        verbose_name="Destino (bairro/cidade)",
+        null=True,
+        blank=True
+    )
+    custo_rota = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Custo da Rota (R$)",
+        null=True,
+        blank=True
+    )
+    valor_total_vendas = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name="Valor Total de Vendas",
+        null=True,
+        blank=True
+    )
+    lucro_rota = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name="Lucro da Rota",
         null=True,
         blank=True
     )

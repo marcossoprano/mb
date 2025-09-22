@@ -151,58 +151,96 @@ class RelatorioPDFView(APIView):
             styles = getSampleStyleSheet()
             body_style = styles['BodyText']
             body_style.fontName = 'Helvetica'
-            body_style.fontSize = 9
-            body_style.leading = 12
-            c.setFont('Helvetica-Bold', 12)
+            body_style.fontSize = 7  # Fonte menor
+            body_style.leading = 9   # Espaçamento menor
+            c.setFont('Helvetica-Bold', 10)  # Título menor
+            # Título em negrito
+            from reportlab.platypus import Paragraph
+            title_style = styles['Heading4']
+            title_style.fontName = 'Helvetica-Bold'
+            title_style.fontSize = 10  # Título menor
+            title_style.spaceAfter = 0
+            title_para = Paragraph(f'<b>{title}</b>', title_style)
+            w_title, h_title = title_para.wrap(width - 4*cm, y)
+            title_para.drawOn(c, 2*cm, y - h_title)
+            y -= h_title + 0.1*cm  # Espaçamento menor
             if y < 3*cm:
                 c.showPage()
                 y = height - 2*cm
-            c.drawString(2*cm, y, title)
-            y -= 0.6*cm
-            # Converter strings longas em Paragraph para quebrar linha
+            # Converter todas as células em Paragraph para melhor quebra de linha
             wrapped_rows = []
+            num_cols = len(header)
+            # Larguras ajustadas para melhor distribuição - mais conservadoras
+            if num_cols == 2:
+                col_widths = [9*cm, 3.5*cm]
+            elif num_cols == 3:
+                col_widths = [6.5*cm, 2*cm, 6*cm]
+            elif num_cols == 5:
+                # Vendas detalhadas: distribuição mais equilibrada
+                col_widths = [5.5*cm, 1.5*cm, 2*cm, 2.5*cm, 8.5*cm]
+            elif num_cols == 10:
+                # Rotas: ajuste fino para caber tudo
+                col_widths = [0.7*cm, 2.8*cm, 1.3*cm, 2.3*cm, 1.8*cm, 1.6*cm, 1.8*cm, 1.8*cm, 1.8*cm, 3.1*cm]
+            else:
+                col_widths = [3.5*cm] * num_cols
             for r in rows:
-                nome = Paragraph(r[0], body_style)
-                qtd = r[1]
-                tipo_obs = Paragraph(r[2], body_style)
-                wrapped_rows.append([nome, qtd, tipo_obs])
+                wrapped = []
+                for i in range(num_cols):
+                    if i < len(r):
+                        wrapped.append(Paragraph(str(r[i]), body_style))
+                    else:
+                        wrapped.append(Paragraph('', body_style))
+                wrapped_rows.append(wrapped)
             data = [header] + wrapped_rows
-            table = Table(data, colWidths=[6*cm, 2.5*cm, 5.5*cm])
-            table.setStyle(TableStyle([
+            table = Table(data, colWidths=col_widths, repeatRows=1)
+            style = [
                 ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
                 ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 7),  # Fonte menor para tudo
                 ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                ('ALIGN', (1,1), (1,-1), 'RIGHT'),
-                ('ALIGN', (2,1), (2,-1), 'LEFT'),
-            ]))
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('LEFTPADDING', (0,0), (-1,-1), 3),  # Padding menor
+                ('RIGHTPADDING', (0,0), (-1,-1), 3),
+                ('TOPPADDING', (0,0), (-1,-1), 3),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ]
+            # Alinhamento por coluna
+            if num_cols >= 2:
+                style.append(('ALIGN', (1,1), (1,-1), 'RIGHT'))
+            if num_cols >= 3:
+                style.append(('ALIGN', (2,1), (2,-1), 'LEFT'))
+            if num_cols == 10:
+                style += [
+                    ('FONTSIZE', (0,0), (-1,-1), 6),  # Fonte ainda menor para tabela de 10 colunas
+                    ('ALIGN', (0,1), (0,-1), 'CENTER'),
+                    ('ALIGN', (1,1), (1,-1), 'LEFT'),
+                    ('ALIGN', (2,1), (2,-1), 'CENTER'),
+                    ('ALIGN', (5,1), (7,-1), 'RIGHT'),
+                    ('ALIGN', (8,1), (8,-1), 'CENTER'),
+                ]
+            table.setStyle(TableStyle(style))
             w, h = table.wrapOn(c, width - 4*cm, y)
             # Se a tabela não couber inteira, dividir em páginas
-            if (y - h) < 2*cm:
+            if (y - h) < 3*cm:  # Margem maior para evitar cortes
                 # Paginar em blocos
-                max_rows_per_page = 25
+                max_rows_per_page = 15  # Menos linhas por página
                 chunk = [header]
                 for i, r in enumerate(wrapped_rows, start=1):
                     chunk.append(r)
                     if len(chunk) == max_rows_per_page + 1 or i == len(rows):
-                        t = Table(chunk, colWidths=[6*cm, 2.5*cm, 5.5*cm])
-                        t.setStyle(TableStyle([
-                            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-                            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                            ('ALIGN', (1,1), (1,-1), 'RIGHT'),
-                            ('ALIGN', (2,1), (2,-1), 'LEFT'),
-                        ]))
+                        t = Table(chunk, colWidths=col_widths, repeatRows=1)
+                        t.setStyle(TableStyle(style))
                         w2, h2 = t.wrapOn(c, width - 4*cm, y)
-                        if (y - h2) < 2*cm:
+                        if (y - h2) < 3*cm:
                             c.showPage()
-                            y = height - 2*cm
+                            y = height - 3*cm  # Margem superior maior
                         t.drawOn(c, 2*cm, y - h2)
-                        y = y - h2 - 0.6*cm
+                        y = y - h2 - 1.2*cm  # Espaçamento maior entre blocos
                         chunk = [header]
                 return
             # Cabe
             table.drawOn(c, 2*cm, y - h)
-            y = y - h - 0.6*cm
+            y = y - h - 1.2*cm  # Espaçamento maior
 
 
         # Gráfico 1: Entradas vs Saídas (barras)
@@ -335,6 +373,107 @@ class RelatorioPDFView(APIView):
         draw_table_with_pagination('Entradas por produto (todas as entradas no período)', ['Produto', 'Quantidade', 'Tipo / Observação'], entradas_rows)
         draw_table_with_pagination('Saídas por produto (todas as saídas no período)', ['Produto', 'Quantidade', 'Tipo / Observação'], saidas_rows)
 
+        # Top Entradas (produtos)
+        top_entradas = list(entradas_qs)[:5]
+        top_entradas_rows = [[e['produto__nome'] or f"ID {e['produto__idProduto']}", str(e['total'])] for e in top_entradas]
+        if not top_entradas_rows:
+            top_entradas_rows = [['Sem dados', '0']]
+        table_top_entradas = Table([['Produto', 'Qtd entrada']] + top_entradas_rows, colWidths=[8*cm, 3*cm])
+        table_top_entradas.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ]))
+        wte, hte = table_top_entradas.wrapOn(c, width - 4*cm, y)
+        c.setFont('Helvetica-Bold', 11)
+        c.drawString(2*cm, y, 'Top Entradas (produtos)')
+        y -= 0.6*cm
+        table_top_entradas.drawOn(c, 2*cm, y - hte)
+        y = y - hte - 1*cm
+
+        # Top Saídas (produtos)
+        top_saidas = list(saidas_qs)[:5]
+        top_saidas_rows = [[s['produto__nome'] or f"ID {s['produto__idProduto']}", str(s['total'])] for s in top_saidas]
+        if not top_saidas_rows:
+            top_saidas_rows = [['Sem dados', '0']]
+        table_top_saidas = Table([['Produto', 'Qtd saída']] + top_saidas_rows, colWidths=[8*cm, 3*cm])
+        table_top_saidas.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ]))
+        wts, hts = table_top_saidas.wrapOn(c, width - 4*cm, y)
+        c.setFont('Helvetica-Bold', 11)
+        c.drawString(2*cm, y, 'Top Saídas (produtos)')
+        y -= 0.6*cm
+        table_top_saidas.drawOn(c, 2*cm, y - hts)
+        y = y - hts - 1*cm
+
+        # Top Produtos Vendidos (total) - paginado
+        top_vendidos = sorted(envio_por_produto.items(), key=lambda x: x[1], reverse=True)
+        top_vendidos_rows = [[id_to_nome.get(pid, f"ID {pid}"), str(qtd)] for pid, qtd in top_vendidos]
+        if not top_vendidos_rows:
+            top_vendidos_rows = [['Sem dados', '0']]
+        draw_table_with_pagination('Top Produtos Vendidos (total)', ['Produto', 'Qtd vendida'], top_vendidos_rows)
+
+        # Top Produtos Menos Vendidos (total)
+        bottom_vendidos = sorted(envio_por_produto.items(), key=lambda x: x[1])[:5]
+        bottom_vendidos_rows = [[id_to_nome.get(pid, f"ID {pid}"), str(qtd)] for pid, qtd in bottom_vendidos]
+        if not bottom_vendidos_rows:
+            bottom_vendidos_rows = [['Sem dados', '0']]
+        table_bottom_vendidos = Table([['Produto', 'Qtd vendida']] + bottom_vendidos_rows, colWidths=[8*cm, 3*cm])
+        table_bottom_vendidos.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ]))
+        wtbv, htbv = table_bottom_vendidos.wrapOn(c, width - 4*cm, y)
+        c.setFont('Helvetica-Bold', 11)
+        c.drawString(2*cm, y, 'Top Produtos Menos Vendidos (total)')
+        y -= 0.6*cm
+        table_bottom_vendidos.drawOn(c, 2*cm, y - htbv)
+        y = y - htbv - 1*cm
+
+        # Tabela de vendas detalhada
+        from produtos.models import Venda
+        vendas = Venda.objects.filter(usuario=usuario, data_venda__range=(inicio, fim)).select_related('usuario')
+        vendas_rows = []
+        for venda in vendas:
+            produtos_venda = venda.produtos.all()
+            for produto in produtos_venda:
+                quantidade = 1  # Ajuste se houver campo de quantidade por produto
+                valor = produto.preco_venda
+                data = venda.data_venda.strftime('%d/%m/%Y %H:%M')
+                # Observação: venda em rota ou direta
+                obs = venda.observacao or ''
+                venda_em_rota = getattr(venda, 'rota_id', None)
+                if venda_em_rota:
+                    obs_tipo = f"Venda em rota (ID {venda_em_rota})"
+                else:
+                    obs_tipo = "Venda direta"
+                vendas_rows.append([
+                    produto.nome,
+                    str(quantidade),
+                    f"R$ {valor:.2f}",
+                    data,
+                    f"{obs} | {obs_tipo}"
+                ])
+        if not vendas_rows:
+            vendas_rows = [['Sem dados', '', '', '', '']]
+        vendas_header = ['Produto', 'Quantidade', 'Valor da venda', 'Data', 'Observação']
+        vendas_table = Table([vendas_header] + vendas_rows, colWidths=[5*cm, 2*cm, 3*cm, 3*cm, 5*cm])
+        vendas_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ]))
+        wv, hv = vendas_table.wrapOn(c, width - 4*cm, y)
+        c.setFont('Helvetica-Bold', 13)
+        c.drawString(2*cm, y, 'Vendas detalhadas no período')
+        y -= 0.8*cm
+        vendas_table.drawOn(c, 2*cm, y - hv)
+        y = y - hv - 1*cm
+
         # Quebra de página para iniciar seção de Rotas
         if y < 6*cm:
             c.showPage()
@@ -399,38 +538,70 @@ class RelatorioPDFView(APIView):
 
         y = y - h3 - 1*cm
 
-        # Tabela: Todas as rotas geradas no período
+        # Relatório auxiliar: bairros mais visitados
+        # Agrupar destinos das rotas do usuário
+        destinos_count = {}
+        for rota in rotas:
+            destino = (rota.destino or '').strip()
+            if destino:
+                destinos_count[destino] = destinos_count.get(destino, 0) + 1
+
+        # Ranking dos bairros/cidades mais visitados
+        ranking_destinos = sorted(destinos_count.items(), key=lambda x: x[1], reverse=True)
+
         if y < 4*cm:
             c.showPage()
             y = height - 2*cm
 
-        # Título: Todas as rotas geradas
         c.setFont('Helvetica-Bold', 11)
-        c.drawString(2*cm, y, 'Todas as rotas geradas no período')
+        c.drawString(2*cm, y, 'Ranking de bairros/cidades mais visitados (rotas)')
         y -= 0.6*cm
 
-        # Preparar dados das rotas
+        destinos_header = ['Destino (bairro/cidade)', 'Qtd visitas']
+        destinos_rows = [[destino, str(qtd)] for destino, qtd in ranking_destinos]
+        if not destinos_rows:
+            destinos_rows = [['Sem dados', '0']]
+        destinos_table = Table([destinos_header] + destinos_rows, colWidths=[7*cm, 3*cm])
+        destinos_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ]))
+        w_dest, h_dest = destinos_table.wrapOn(c, width - 4*cm, y)
+        destinos_table.drawOn(c, 2*cm, y - h_dest)
+        y = y - h_dest - 1*cm
+
+        # Todas as rotas geradas no período - paginado
         rotas_data = []
-        total_gasto = 0
+        total_custo = 0
+        total_vendas = 0
+        total_lucro = 0
         for rota in rotas:
             veiculo_nome = rota.veiculo.nome if rota.veiculo else 'Veículo Padrão'
             motorista = rota.nome_motorista or 'Sem motorista'
             data_formatada = rota.data_geracao.strftime('%d/%m/%Y %H:%M')
             status_display = 'Concluído' if rota.status == 'concluido' else 'Em Progresso'
-            total_gasto += rota.valor_rota
-            
+            destino = rota.destino or '-'
+            custo = rota.custo_rota if rota.custo_rota is not None else 0
+            valor_vendas = rota.valor_total_vendas if rota.valor_total_vendas is not None else 0
+            lucro = rota.lucro_rota if rota.lucro_rota is not None else 0
+            total_custo += custo
+            total_vendas += valor_vendas
+            total_lucro += lucro
             rotas_data.append([
                 str(rota.id),
+                destino,
                 f"{rota.distancia_total_km} km",
                 veiculo_nome,
                 motorista,
-                f"R$ {rota.valor_rota:.2f}",
+                f"R$ {custo:.2f}",
+                f"R$ {valor_vendas:.2f}",
+                f"R$ {lucro:.2f}",
                 status_display,
                 data_formatada
             ])
-
         if not rotas_data:
-            rotas_data = [['Sem dados', '', '', '', '', '', '']]
+            rotas_data = [['Sem dados', '', '', '', '', '', '', '', '', '']]
         else:
             # Adicionar linha de total
             rotas_data.append([
@@ -438,43 +609,14 @@ class RelatorioPDFView(APIView):
                 '',
                 '',
                 '',
-                f"R$ {total_gasto:.2f}",
+                '',
+                f"R$ {total_custo:.2f}",
+                f"R$ {total_vendas:.2f}",
+                f"R$ {total_lucro:.2f}",
                 '',
                 ''
             ])
-
-        # Criar tabela de rotas
-        rotas_header = ['ID', 'Distância', 'Veículo', 'Motorista', 'Valor', 'Status', 'Data']
-        rotas_table = Table([rotas_header] + rotas_data, colWidths=[1.0*cm, 1.8*cm, 4.0*cm, 2.2*cm, 1.8*cm, 2.0*cm, 2.6*cm])
-        # Calcular índice da linha de total
-        total_row_index = len(rotas_data) if rotas_data and rotas_data[0] != ['Sem dados', '', '', '', '', '', ''] else -1
-        
-        rotas_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 8),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('ALIGN', (0,1), (0,-1), 'CENTER'),  # ID centralizado
-            ('ALIGN', (1,1), (1,-1), 'CENTER'),  # Distância centralizada
-            ('ALIGN', (4,1), (4,-1), 'RIGHT'),   # Valor alinhado à direita
-            ('ALIGN', (5,1), (5,-1), 'CENTER'),  # Status centralizado
-            # Destacar linha de total se existir
-            ('BACKGROUND', (0, total_row_index), (-1, total_row_index), colors.lightblue) if total_row_index > 0 else ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-            ('FONTNAME', (0, total_row_index), (-1, total_row_index), 'Helvetica-Bold') if total_row_index > 0 else ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ]))
-
-        # Verificar se a tabela cabe na página
-        w4, h4 = rotas_table.wrapOn(c, width - 4*cm, y)
-        if (y - h4) < 2*cm:
-            c.showPage()
-            y = height - 2*cm
-            # Redesenhar título na nova página
-            c.setFont('Helvetica-Bold', 11)
-            c.drawString(2*cm, y, 'Todas as rotas geradas no período')
-            y -= 0.6*cm
-
-        rotas_table.drawOn(c, 2*cm, y - h4)
-        y = y - h4 - 0.6*cm
+        draw_table_with_pagination('Todas as rotas geradas no período', ['ID', 'Destino', 'Distância', 'Veículo', 'Motorista', 'Custo', 'Valor Total de Vendas', 'Lucro da Rota', 'Status', 'Data'], rotas_data)
 
         c.showPage()
         c.save()

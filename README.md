@@ -1,3 +1,45 @@
+## Testando o Relatório PDF Atualizado
+
+### Gerar relatório PDF
+Execute no Postman ou via navegador (autenticado):
+
+```
+GET http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=ultimo_mes
+```
+Ou especifique o período:
+```
+GET http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=custom&inicio=2025-09-01&fim=2025-09-20
+```
+
+### O que o relatório PDF inclui:
+- Cabeçalho: Usuário, CNPJ, Período
+- Resumo: métricas principais
+- Produtos:
+  - Gráfico Entradas vs Saídas
+  - Tabelas de entradas/saídas por produto
+  - Top Entradas (produtos)
+  - Top Saídas (produtos)
+  - Top Produtos Vendidos (total)
+  - Top Produtos Menos Vendidos (total)
+- Rotas:
+  - Ranking de bairros/cidades mais visitados
+  - Tabela detalhada de rotas com colunas: Destino, Custo, Valor Total de Vendas, Lucro da Rota, etc.
+- Vendas:
+  - Tabela detalhada de vendas: produto, quantidade, valor, data, observação (rota ou direta)
+
+### Exemplo de uso no Postman
+1. Faça login e obtenha o token de acesso.
+2. Crie uma requisição GET para:
+   ```
+   http://127.0.0.1:8000/api/relatorios/conta/pdf/?periodo=ultimo_mes
+   ```
+3. No Postman, vá em "Headers" e adicione:
+   - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+4. Execute a requisição.
+5. O Postman fará o download do arquivo PDF com todas as seções e colunas novas.
+
+### Observação
+- O relatório é filtrado por usuário (multi-tenant): cada usuário vê apenas seus dados.
 # MILO Backend
 
 Sistema de configuração logística inteligente para microindústrias
@@ -58,7 +100,72 @@ python manage.py runserver
 ou
 ```bash
 py manage.py runserver
+
+
+### 7. Testando o endpoint de vendas com Postman
+
+#### Criar venda
+**Endpoint:**
 ```
+POST http://127.0.0.1:8000/api/produtos/vendas/
+```
+**Exemplo de requisição (JSON):**
+```
+{
+  "produtos": [1, 2],
+  "valor_total": 150.00,
+  "observacao": "Venda de produtos diversos"
+}
+```
+**Resposta esperada:**
+```
+{
+  "idVenda": 1,
+  "data_venda": "2025-09-17T14:23:00Z",
+  "produtos": [1, 2],
+  "valor_total": 150.0,
+  "lucro": 50.0,
+  "observacao": "Venda de produtos diversos",
+  "usuario": 1
+}
+```
+
+#### Listar vendas detalhadas
+**Endpoint:**
+```
+GET http://127.0.0.1:8000/api/produtos/vendas/listar/
+```
+**Exemplo de resposta:**
+```
+[
+  {
+    "idVenda": 1,
+    "data_venda": "2025-09-17T14:23:00Z",
+    "produtos": [
+      {
+        "idProduto": 1,
+        "nome": "Produto Especial",
+        "preco_custo": 100.00,
+        "preco_venda": 150.00
+      },
+      {
+        "idProduto": 2,
+        "nome": "Produto B",
+        "preco_custo": 80.00,
+        "preco_venda": 120.00
+      }
+    ],
+    "valor_total": 150.0,
+    "lucro": 50.0,
+    "observacao": "Venda de produtos diversos"
+  }
+]
+```
+
+**Observações:**
+- O campo `lucro` é calculado automaticamente (valor_total - soma dos custos dos produtos).
+- O estoque dos produtos é atualizado e a movimentação de saída é registrada.
+- Cada usuário só visualiza e registra suas próprias vendas.
 
 ### 7. Teste as rotas de registro e login no Postman
 
@@ -771,7 +878,7 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 
 #### 📄 Relatórios em PDF
 
-- **Endpoint:** `GET http://127.0.0.1:8000/api/relatorios/conta/pdf/`
+- **Endpoint:** `GET/`
 - **Headers:**
   - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
 - **Query Params:**
