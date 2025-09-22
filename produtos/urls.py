@@ -1,4 +1,6 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import VendaViewSet, VendaListView
 from .views import (
     ProdutoCreateView,
     ProdutoCreateWithCategoriaView,
@@ -12,11 +14,18 @@ from .views import (
     MovimentacaoEstoqueProdutoListView,
 )
 
+router = DefaultRouter()
+
+
+
 urlpatterns = [
+    path('', include(router.urls)),
     # Rotas Produtos
     path('cadastrar/', ProdutoCreateView.as_view(), name='cadastrar-produto'),
     path('cadastrar-com-categoria/', ProdutoCreateWithCategoriaView.as_view(), name='cadastrar-produto-com-categoria'),
     path('', ProdutoListView.as_view(), name='listar-produtos'),
+    # Listagem detalhada de vendas
+    path('vendas/listar/', VendaListView.as_view(), name='venda-listar'),
     path('<int:idProduto>/atualizar/', ProdutoUpdateView.as_view(), name='atualizar-produto'),
     path('<int:idProduto>/excluir/', ProdutoDeleteView.as_view(), name='excluir-produto'),
 

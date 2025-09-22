@@ -1,15 +1,60 @@
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Produto, Fornecedor, Categoria, MovimentacaoEstoque
+from .models import Produto, Fornecedor, Categoria, MovimentacaoEstoque, Venda
+from .serializers import VendaListSerializer
+
+class VendaListView(generics.ListAPIView):
+    """Listar todas as vendas do usuário, detalhando produtos vendidos, valor, lucro, observação, data."""
+    serializer_class = VendaListSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['data_venda', 'valor_total']
+    search_fields = ['observacao', 'produtos__nome']
+
+    def get_queryset(self):
+        return Venda.objects.filter(usuario=self.request.user)
+from rest_framework import generics, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .models import Produto, Fornecedor, Categoria, MovimentacaoEstoque, Venda
 from .serializers import (
     ProdutoSerializer, 
     FornecedorSerializer, 
     CategoriaSerializer,
     CategoriaCreateSerializer,
     ProdutoCreateWithCategoriaSerializer,
-    MovimentacaoEstoqueSerializer
+    MovimentacaoEstoqueSerializer,
+    VendaSerializer
 )
+# Views para Venda
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+
+class VendaViewSet(viewsets.ModelViewSet):
+    serializer_class = VendaSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Venda.objects.filter(usuario=self.request.user)
+
+    def perform_create(self, serializer):
+        venda = serializer.save(usuario=self.request.user)
+        # Registrar movimentação de saída para cada produto vendido
+        for produto in venda.produtos.all():
+            estoque_anterior = produto.estoque_atual
+            quantidade_vendida = 1  # Ajuste conforme a lógica de quantidade por produto
+            produto.estoque_atual = max(estoque_anterior - quantidade_vendida, 0)
+            produto.save()
+            MovimentacaoEstoque.objects.create(
+                produto=produto,
+                tipo='saida',
+                quantidade=quantidade_vendida,
+                estoque_anterior=estoque_anterior,
+                estoque_atual=produto.estoque_atual,
+                observacao=f'Saída por venda {venda.idVenda}',
+                usuario=self.request.user
+            )
 
 
 # Produto CRUD (mantido igual ao seu)
