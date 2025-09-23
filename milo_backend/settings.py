@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'produtos',
     'rotas',
     'planilhas',  # Novo app para importação/exportação de planilhas
+    'vendas',  # App para gerenciamento de vendas
     'corsheaders',
     'relatorios',
 ]
