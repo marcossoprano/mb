@@ -376,6 +376,8 @@ py manage.py runserver
 O sistema registra automaticamente todas as movimentações de estoque quando:
 - **Criação de produto**: Se o produto for criado com estoque inicial, registra uma movimentação de entrada
 - **Atualização de produto**: Se o estoque for alterado durante a atualização, registra automaticamente a movimentação
+- **Finalização de venda**: Quando uma venda é finalizada, registra movimentações de saída para cada produto vendido
+- **Criação de rota**: Quando uma rota é criada, registra movimentações de saída para os produtos incluídos na rota
 
 #### Listar Todas as Movimentações
 - **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/movimentacoes/`
@@ -435,6 +437,233 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 #### Buscar Produtos por Nome ou Marca
 - **Endpoint:** `GET http://127.0.0.1:8000/api/produtos/?search=smartphone`
 - **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+---
+
+#### 💰 **Vendas**
+
+#### Criar Venda
+- **Endpoint:** `POST http://127.0.0.1:8000/api/vendas/create/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "observacoes": "Venda para cliente especial",
+    "itens": [
+      {
+        "produto": 1,
+        "quantidade": 2,
+        "preco_unitario": 15.00
+      },
+      {
+        "produto": 2,
+        "quantidade": 1
+      }
+    ]
+  }
+  ```
+- **Resposta:**
+  ```json
+  {
+    "id": 1,
+    "data_criacao": "2024-01-20T10:30:00Z",
+    "data_atualizacao": "2024-01-20T10:30:00Z",
+    "total": 55.00,
+    "status": "pendente",
+    "status_display": "Pendente",
+    "observacoes": "Venda para cliente especial",
+    "total_itens": 2,
+    "itens": [
+      {
+        "id": 1,
+        "produto": 1,
+        "produto_nome": "Smartphone XYZ",
+        "produto_codigo_barras": "1234567890123",
+        "produto_preco_venda": 15.00,
+        "produto_estoque_atual": 18,
+        "quantidade": 2,
+        "preco_unitario": 15.00,
+        "subtotal": 30.00
+      },
+      {
+        "id": 2,
+        "produto": 2,
+        "produto_nome": "Tablet ABC",
+        "produto_codigo_barras": "9876543210987",
+        "produto_preco_venda": 25.00,
+        "produto_estoque_atual": 12,
+        "quantidade": 1,
+        "preco_unitario": 25.00,
+        "subtotal": 25.00
+      }
+    ]
+  }
+  ```
+
+#### Listar Vendas
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  [
+    {
+      "id": 1,
+      "data_criacao": "2024-01-20T10:30:00Z",
+      "data_atualizacao": "2024-01-20T10:30:00Z",
+      "total": 55.00,
+      "status": "pendente",
+      "status_display": "Pendente",
+      "observacoes": "Venda para cliente especial",
+      "total_itens": 2,
+      "itens": [...]
+    }
+  ]
+  ```
+
+#### Obter Detalhes de uma Venda
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/{id}/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Atualizar Venda
+- **Endpoint:** `PUT http://127.0.0.1:8000/api/vendas/{id}/update/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "observacoes": "Venda atualizada - cliente VIP",
+    "status": "pendente"
+  }
+  ```
+
+#### Excluir Venda
+- **Endpoint:** `DELETE http://127.0.0.1:8000/api/vendas/{id}/delete/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Observação:** Apenas vendas pendentes ou canceladas podem ser excluídas
+
+#### Finalizar Venda
+- **Endpoint:** `POST http://127.0.0.1:8000/api/vendas/{id}/finalizar/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {}
+  ```
+- **Observação:** Esta ação registra automaticamente as movimentações de estoque e altera o status para "finalizada"
+
+#### Cancelar Venda
+- **Endpoint:** `POST http://127.0.0.1:8000/api/vendas/{id}/cancelar/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {}
+  ```
+- **Observação:** Apenas vendas pendentes podem ser canceladas
+
+#### Adicionar Item à Venda
+- **Endpoint:** `POST http://127.0.0.1:8000/api/vendas/{venda_id}/itens/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "produto": 3,
+    "quantidade": 1,
+    "preco_unitario": 20.00
+  }
+  ```
+- **Observação:** O campo `preco_unitario` é **opcional**. Se não informado, será usado automaticamente o `preco_venda` do produto.
+
+#### Atualizar Item da Venda
+- **Endpoint:** `PUT http://127.0.0.1:8000/api/vendas/{venda_id}/itens/{id}/`
+- **Headers:** 
+  - `Content-Type: application/json`
+  - `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Body (JSON):**
+  ```json
+  {
+    "quantidade": 3,
+    "preco_unitario": 18.00
+  }
+  ```
+
+#### Remover Item da Venda
+- **Endpoint:** `DELETE http://127.0.0.1:8000/api/vendas/{venda_id}/itens/{id}/delete/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Estatísticas de Vendas
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/estatisticas/`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+- **Resposta:**
+  ```json
+  {
+    "total_vendas": 15,
+    "vendas_finalizadas": 12,
+    "vendas_pendentes": 2,
+    "vendas_canceladas": 1,
+    "total_faturado": 2500.00,
+    "total_pendente": 300.00,
+    "venda_maior_valor": {
+      "id": 5,
+      "total": 450.00,
+      "data": "2024-01-20T14:30:00Z"
+    }
+  }
+  ```
+
+#### 🔍 **Filtros e Busca para Vendas**
+
+#### Filtrar Vendas por Status
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/?status=pendente`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Buscar Vendas por Observações
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/?search=cliente`
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Ordenar Vendas
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/?ordering=-data_criacao` (mais recentes primeiro)
+- **Endpoint:** `GET http://127.0.0.1:8000/api/vendas/?ordering=total` (menor valor primeiro)
+- **Headers:** `Authorization: Bearer SEU_ACCESS_TOKEN_AQUI`
+
+#### Valores Válidos para Status da Venda
+- `pendente` - Pendente (pode ser modificada)
+- `finalizada` - Finalizada (estoque já foi atualizado)
+- `cancelada` - Cancelada
+
+#### 💰 **Sobre Preços na Venda**
+
+**Preço de Venda vs Preço Unitário:**
+- **`preco_venda`**: Preço padrão cadastrado no produto (referência)
+- **`preco_unitario`**: Preço específico usado nesta venda (opcional)
+
+**Como funciona:**
+- Se `preco_unitario` **não for informado**: Usa automaticamente o `preco_venda` do produto
+- Se `preco_unitario` **for informado**: Usa o valor específico (permite descontos/acréscimos)
+
+**Exemplos:**
+```json
+// Usando preço padrão (preco_unitario omitido)
+{
+  "produto": 1,
+  "quantidade": 2
+  // preco_unitario será automaticamente o preco_venda do produto
+}
+
+// Usando preço personalizado (com desconto)
+{
+  "produto": 1,
+  "quantidade": 2,
+  "preco_unitario": 12.00  // Desconto de R$ 3,00 por unidade
+}
+```
 
 ---
 
@@ -840,17 +1069,24 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 7. **Verificar movimentações** (GET `/api/produtos/movimentacoes/`)
 8. **Atualizar produto** (PUT `/api/produtos/{id}/atualizar/`) - Alterar estoque
 9. **Verificar movimentações novamente** (GET `/api/produtos/movimentacoes/`)
-10. **Cadastrar veículo** (POST `/api/rotas/veiculos/criar/`)
-11. **Listar veículos** (GET `/api/rotas/veiculos/`)
-12. **Atualizar veículo** (PUT `/api/rotas/veiculos/{id}/atualizar/`)
-13. **Testar filtros de veículos** (GET `/api/rotas/veiculos/?tipo_combustivel=diesel` ou `etanol` ou `gnv`)
-14. **Obter preços de combustível** (GET `/api/rotas/precos-combustivel/`)
-15. **Criar rota otimizada** (POST `/api/rotas/rotas/criar/`)
-16. **Listar rotas** (GET `/api/rotas/rotas/`)
-17. **Verificar movimentações de estoque da rota** (GET `/api/produtos/movimentacoes/`)
-18. **Atualizar status da rota** (PUT `/api/rotas/rotas/{id}/status/`)
-19. **Testar filtros de rotas** (GET `/api/rotas/rotas/?status=em_progresso`)
-20. **Testar outros endpoints**
+10. **Criar venda** (POST `/api/vendas/create/`)
+11. **Listar vendas** (GET `/api/vendas/`)
+12. **Adicionar item à venda** (POST `/api/vendas/{id}/itens/`)
+13. **Atualizar item da venda** (PUT `/api/vendas/{venda_id}/itens/{id}/`)
+14. **Finalizar venda** (POST `/api/vendas/{id}/finalizar/`)
+15. **Verificar movimentações de estoque da venda** (GET `/api/produtos/movimentacoes/`)
+16. **Verificar estatísticas de vendas** (GET `/api/vendas/estatisticas/`)
+17. **Cadastrar veículo** (POST `/api/rotas/veiculos/criar/`)
+18. **Listar veículos** (GET `/api/rotas/veiculos/`)
+19. **Atualizar veículo** (PUT `/api/rotas/veiculos/{id}/atualizar/`)
+20. **Testar filtros de veículos** (GET `/api/rotas/veiculos/?tipo_combustivel=diesel` ou `etanol` ou `gnv`)
+21. **Obter preços de combustível** (GET `/api/rotas/precos-combustivel/`)
+22. **Criar rota otimizada** (POST `/api/rotas/rotas/criar/`)
+23. **Listar rotas** (GET `/api/rotas/rotas/`)
+24. **Verificar movimentações de estoque da rota** (GET `/api/produtos/movimentacoes/`)
+25. **Atualizar status da rota** (PUT `/api/rotas/rotas/{id}/status/`)
+26. **Testar filtros de rotas** (GET `/api/rotas/rotas/?status=em_progresso`)
+27. **Testar outros endpoints**
 
 ---
 
@@ -858,16 +1094,20 @@ O sistema registra automaticamente todas as movimentações de estoque quando:
 - **Nunca commite o arquivo `DBCCREDENTIALS.env`!**
 - **Eficiência de combustível:** O sistema usa `eficiencia_km_l` (quilômetros por litro) como padrão da indústria automotiva
 - **Exemplo:** Se um carro faz 12 km/L, significa que percorre 12 quilômetros com 1 litro de combustível
-- Todos os endpoints de produtos, veículos e rotas requerem autenticação
+- Todos os endpoints de produtos, veículos, rotas e vendas requerem autenticação
 - Código de barras deve ter exatamente 13 dígitos numéricos
 - Preço de venda não pode ser menor que o preço de custo
 - Categorias e fornecedores são únicos por usuário
 - Fornecedores não podem ter o mesmo nome para o mesmo usuário
 - **Movimentações de estoque são registradas automaticamente** quando o estoque é alterado
-- Veículos e rotas são isolados por usuário (multi-tenant)
+- **Vendas registram movimentações de saída** quando finalizadas
+- **Rotas registram movimentações de saída** quando criadas
+- Veículos, rotas e vendas são isolados por usuário (multi-tenant)
 - **Rotas sempre começam e terminam no endereço do usuário** (origem = destino)
-- **Estoque é automaticamente reduzido** quando uma rota é criada
+- **Estoque é automaticamente reduzido** quando uma rota é criada ou venda é finalizada
 - **Algoritmo de otimização usa TSP (Traveling Salesman Problem)** para encontrar a melhor rota
+- **Vendas pendentes podem ser modificadas**, vendas finalizadas não podem ser alteradas
+- **Apenas vendas pendentes ou canceladas podem ser excluídas**
 
 ### Metadados obrigatórios do Produto
 - nome

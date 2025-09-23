@@ -23,5 +23,6 @@ urlpatterns = [
     path('api/produtos/', include('produtos.urls')),
     path('api/rotas/', include('rotas.urls')),
     path('api/planilhas/', include('planilhas.urls')),  # Rotas para importação/exportação de planilhas
+    path('api/vendas/', include('vendas.urls')),  # Rotas para gerenciamento de vendas
     path('api/relatorios/', include('relatorios.urls')),
 ]
