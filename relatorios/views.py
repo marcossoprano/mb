@@ -38,11 +38,11 @@ class RelatorioHTMLView(APIView):
         
         # Padrões específicos para os endereços encontrados
         patterns = [
-            # Padrão específico: "Avenida Eraldo Lins Cavalcante, 676, Barro Duro, Maceió - AL, 57045430"
-            r',\s*[0-9]+,\s*([^,]+),\s*[^,]+',  # ..., número, Bairro, Cidade
+            # Padrão: ..., número, Bairro, Cidade
+            r',\s*[0-9]+,\s*([^,]+),\s*[^,]+',
             
-            # Padrão específico: "Rua Prof. Silvio de Macedo, 125, Jatiúca"
-            r',\s*[0-9]+,\s*([^,]+)$',  # ..., número, Bairro (final)
+            # Padrão: ..., número, Bairro (final)
+            r',\s*[0-9]+,\s*([^,]+)$',
             
             # Padrões com vírgulas e estado
             r',\s*([^,]+),\s*[A-Z]{2}',  # ..., Bairro, SP
