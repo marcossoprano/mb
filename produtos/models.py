@@ -97,26 +97,6 @@ class Produto(models.Model):
         if self.estoque_minimo < 0:
             raise ValidationError("Estoque mínimo não pode ser negativo")
 
-class Venda(models.Model):
-    idVenda = models.AutoField(primary_key=True)
-    data_venda = models.DateTimeField(auto_now_add=True, verbose_name="Data da Venda")
-    produtos = models.ManyToManyField('Produto', related_name='vendas', verbose_name="Produtos Vendidos")
-    valor_total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor Total")
-    observacao = models.TextField(blank=True, null=True, verbose_name="Observação")
-    usuario = models.ForeignKey(
-        Usuario,
-        on_delete=models.CASCADE,
-        verbose_name="Usuário Responsável"
-    )
-
-    class Meta:
-        ordering = ['-data_venda']
-        verbose_name = "Venda"
-        verbose_name_plural = "Vendas"
-
-    def __str__(self):
-        return f"Venda {self.idVenda} - {self.data_venda.strftime('%d/%m/%Y %H:%M')}"
-
 class MovimentacaoEstoque(models.Model):
     TIPO_CHOICES = [
         ('entrada', 'Entrada'),
