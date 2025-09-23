@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import RelatorioPDFView
+from .views import RelatorioHTMLView
 
 urlpatterns = [
-    path('conta/pdf/', RelatorioPDFView.as_view(), name='relatorio-conta-pdf'),
+    path('conta/html/', RelatorioHTMLView.as_view(), name='relatorio-conta-html'),
 ]
 
 
