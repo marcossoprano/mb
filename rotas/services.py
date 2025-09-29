@@ -1,26 +1,14 @@
-# services.py com fallback inteligente
+# services.py com importação totalmente lazy
 import requests
 from decimal import Decimal
 import json
 import hashlib
 import time
 from functools import lru_cache
+import os
 
-# Tentativa de importar bibliotecas pesadas
-HEAVY_LIBS_AVAILABLE = False
-try:
-    import osmnx as ox
-    import networkx as nx
-    from ortools.constraint_solver import pywrapcp, routing_enums_pb2
-    HEAVY_LIBS_AVAILABLE = True
-    print("✅ Bibliotecas de otimização carregadas com sucesso")
-except ImportError as e:
-    print(f"⚠️  Bibliotecas de otimização não disponíveis: {e}")
-    print("💡 Usando modo simplificado para geocodificação")
-    ox = None
-    nx = None
-    pywrapcp = None
-    routing_enums_pb2 = None
+# Configuração de ambiente para controlar carregamento de bibliotecas pesadas
+ENABLE_HEAVY_LIBS = os.getenv('ENABLE_HEAVY_LIBS', 'true').lower() == 'true'
 
 class RotaOtimizacaoService:
     def __init__(self):
@@ -31,12 +19,46 @@ class RotaOtimizacaoService:
         # Cache em memória para grafos OSMnx (região -> grafo)
         self._grafos_cache = {}
         self._grafos_ttl = 60 * 60  # 1 hora em segundos
+        
+        # Lazy loading controls
+        self._heavy_libs_available = None
+        self._ox = None
+        self._nx = None
+        self._pywrapcp = None
+        self._routing_enums_pb2 = None
+
+    def _load_heavy_libs_if_needed(self):
+        """Carrega bibliotecas pesadas apenas quando realmente necessário"""
+        if not ENABLE_HEAVY_LIBS:
+            print("⚠️  Bibliotecas pesadas desabilitadas via ENABLE_HEAVY_LIBS=false")
+            return False
+            
+        if self._heavy_libs_available is None:
+            try:
+                print("� Carregando bibliotecas de otimização...")
+                import osmnx as ox
+                import networkx as nx
+                from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+                
+                self._ox = ox
+                self._nx = nx
+                self._pywrapcp = pywrapcp
+                self._routing_enums_pb2 = routing_enums_pb2
+                self._heavy_libs_available = True
+                print("✅ Bibliotecas de otimização carregadas com sucesso")
+                return True
+            except ImportError as e:
+                print(f"⚠️  Bibliotecas de otimização não disponíveis: {e}")
+                self._heavy_libs_available = False
+                return False
+        
+        return self._heavy_libs_available
 
     def otimizar_rota(self, origem, destinos, veiculo_capacidade=None, horario_inicio=None):
         """
         Otimiza uma rota entre origem e múltiplos destinos
         """
-        if not HEAVY_LIBS_AVAILABLE:
+        if not self._load_heavy_libs_if_needed():
             return {
                 'sucesso': False,
                 'mensagem': 'Otimização de rotas avançada temporariamente indisponível. Usando geocodificação básica.',
@@ -107,10 +129,10 @@ class RotaOtimizacaoService:
 
     def geocodificar_endereco(self, endereco):
         """Geocodifica um único endereço"""
-        if HEAVY_LIBS_AVAILABLE and ox:
+        if self._load_heavy_libs_if_needed() and self._ox:
             try:
                 # Usar osmnx se disponível
-                coordenadas = ox.geocode(endereco)
+                coordenadas = self._ox.geocode(endereco)
                 return coordenadas
             except:
                 pass
@@ -121,7 +143,7 @@ class RotaOtimizacaoService:
 
     def calcular_distancia_tempo(self, origem, destino):
         """Calcula distância e tempo entre dois pontos"""
-        if not HEAVY_LIBS_AVAILABLE:
+        if not self._load_heavy_libs_if_needed():
             # Implementação básica usando coordenadas
             coord_origem = self.geocodificar_endereco(origem)
             coord_destino = self.geocodificar_endereco(destino)
